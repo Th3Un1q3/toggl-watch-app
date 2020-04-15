@@ -1,1 +1,3 @@
-console.log('App init');
+import { bootstrap } from "./bootstrap";
+
+bootstrap();
