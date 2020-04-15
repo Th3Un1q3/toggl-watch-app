@@ -1,0 +1,35 @@
+{
+  "fitbit": {
+    "appUUID": "56da955a-6901-45ab-9b0e-460548a5a464",
+    "appType": "app",
+    "appDisplayName": "Toggl",
+    "iconFile": "resources/icon.png",
+    "wipeColor": "#607d8b",
+    "requestedPermissions": [
+      "access_internet"
+    ],
+    "buildTargets": [
+      "higgs",
+      "meson",
+      "gemini",
+      "mira"
+    ],
+    "i18n": {
+      "en": {
+        "name": "Toggl"
+      }
+    },
+    "defaultLanguage": "en-US"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.9.5",
+    "@fitbit/sdk": "~4.1.0",
+    "babel-core": "^6.26.3",
+    "babel-jest": "^25.3.0",
+    "babel-preset-env": "^1.7.0",
+    "jest": "^25.3.0"
+  },
+  "scripts": {
+    "test:unit": "jest"
+  }
+}
