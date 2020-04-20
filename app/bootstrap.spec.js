@@ -1,13 +1,15 @@
 import {bootstrap} from './bootstrap';
 import {initIncomingMessagesHandler} from './transmission';
 import {enableLoader} from './ui';
+import {_resetSystem, memory} from 'system';
+
 
 jest.mock('./ui');
-
 jest.mock('./transmission');
 
 describe('App bootstrap', () => {
   beforeEach(() => {
+    _resetSystem();
     jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
@@ -37,5 +39,34 @@ describe('App bootstrap', () => {
 
     expect(console.log).toHaveBeenCalled();
     expect(console.log).toHaveBeenCalledWith('App init');
+  });
+
+  describe('memory tracking', () => {
+    it('should show stats on pressure change', () => {
+      const initialExpectedStats = `Memory: ${JSON.stringify(memory.js)}`;
+      bootstrap();
+
+      const monitorSubscriber = memory.monitor._onmemorypressurechangeHandler;
+
+      expect(monitorSubscriber).toEqual(expect.any(Function));
+
+      monitorSubscriber();
+
+      expect(console.log).toHaveBeenLastCalledWith(
+          initialExpectedStats,
+      );
+
+      memory._jsInfo = {
+        total: 20,
+        peak: 15,
+        used: 3,
+      };
+
+      monitorSubscriber();
+
+      expect(console.log).toHaveBeenLastCalledWith(
+          `Memory: ${JSON.stringify(memory.js)}`,
+      );
+    });
   });
 });

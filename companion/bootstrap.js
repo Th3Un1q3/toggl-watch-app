@@ -14,11 +14,11 @@ const sendConnectionStatus = () => {
 };
 
 const bootstrap = () => {
-  peerSocket.onopen = () => {
+  settingsStorage.onchange = () => {
     sendConnectionStatus();
   };
 
-  settingsStorage.onchange = () => {
+  peerSocket.onopen = () => {
     sendConnectionStatus();
   };
 
