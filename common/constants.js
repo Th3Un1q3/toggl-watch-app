@@ -1,0 +1,1 @@
+export const API_TOKEN_SETTINGS_STORAGE_KEY = 'API_TOKEN';

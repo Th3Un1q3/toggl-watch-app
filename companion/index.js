@@ -1,1 +1,3 @@
-console.log('Companion init');
+import {bootstrap} from './bootstrap';
+
+bootstrap();

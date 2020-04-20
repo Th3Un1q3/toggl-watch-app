@@ -27,9 +27,15 @@
     "babel-core": "^6.26.3",
     "babel-jest": "^25.3.0",
     "babel-preset-env": "^1.7.0",
-    "jest": "^25.3.0"
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb": "^18.1.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-plugin-import": "^2.20.2",
+    "jest": "^25.3.0",
+    "jest-environment-jsdom-sixteen": "^1.0.3"
   },
   "scripts": {
-    "test:unit": "jest"
+    "test:unit": "jest",
+    "lint": "eslint ."
   }
 }
