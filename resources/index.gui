@@ -1,3 +1,7 @@
-<svg>
-  <rect id="background" />
+<svg viewport-fill="black">
+  <use id="auth_token_info" href="#mixed-text-center-mid" height="100%" fill="fb-yellow">
+      <set href="#header/text" attributeName="text-buffer" to="_token_config_required_title"/>
+      <set href="#copy/text" attributeName="text-buffer" to="_token_config_required_body"/>
+  </use>
+  <use id="loader" href="#spinner" />
 </svg>

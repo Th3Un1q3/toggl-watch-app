@@ -1,12 +1,11 @@
-.defaultText {
-  font-size: 32;
-  font-family: System-Regular;
-  font-weight: regular;
-  text-length: 32;
+#loader {
+    x: 50%-25;
+    y: 50%-25;
+    width: 50;
+    height: 50;
+    fill: fb-white;
 }
 
-#background {
-  width: 100%;
-  height: 100%;
-  fill: white;
+#auth_token_info {
+    display: none;
 }
