@@ -1,0 +1,2 @@
+msgid "no_project"
+msgstr "No project"

@@ -1,7 +1,8 @@
 import {peerSocket, _resetPeerSocket} from 'messaging';
 import {initIncomingMessagesHandler} from './transmission';
-import {showConfigurationRequired} from './ui';
+import {hideConfigurationRequired, showConfigurationRequired, showCurrentEntry} from './ui';
 import {MESSAGE_TYPE} from '../common/message-types';
+import {timeEntryBody} from '../utils/factories/time-entries';
 
 jest.mock('./ui');
 
@@ -11,29 +12,30 @@ describe('Transmission module', () => {
   });
 
   describe('initIncomingMessagesHandler', () => {
-    it('should configure on message handler', () => {
-      expect(peerSocket._onmessageHandler).toBeNull();
-
+    beforeEach(() => {
       initIncomingMessagesHandler();
-
-      expect(peerSocket._onmessageHandler).toEqual(expect.any(Function));
-    });
-
-    it('should not fail when type or data not defined', () => {
-      expect.hasAssertions();
-      initIncomingMessagesHandler();
-
-
-      expect(() => {
-        peerSocket._onmessageHandler({});
-
-        peerSocket._onmessageHandler({data: 666});
-        peerSocket._onmessageHandler({data: {type: 666}});
-      }).not.toThrow();
     });
 
     describe('when message with type CURRENT_ENTRY_UPDATE received', () => {
-      it.todo('should call ui.showCurrentEntry with entry params');
+      const triggerMessageReceived = (data) => {
+        peerSocket._onmessageHandler({
+          data: {
+            type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
+            data,
+          },
+        });
+      };
+
+      it('should call ui.showCurrentEntry with entry params', () => {
+        const currentEntry = timeEntryBody();
+
+        expect(showCurrentEntry).not.toHaveBeenCalled();
+
+        triggerMessageReceived(currentEntry);
+
+        expect(showCurrentEntry).toHaveBeenCalledTimes(1);
+        expect(showCurrentEntry).toHaveBeenCalledWith(currentEntry);
+      });
     });
 
     describe('when message with type API_TOKEN_STATUS_UPDATE received', () => {
@@ -46,15 +48,14 @@ describe('Transmission module', () => {
         });
       };
 
-
-      beforeEach(() => {
-        initIncomingMessagesHandler();
+      it('should not call any ui changes unless message received', () => {
+        expect(showConfigurationRequired).not.toHaveBeenCalled();
+        expect(hideConfigurationRequired).not.toHaveBeenCalled();
       });
+
 
       describe('and data contains {configured: false}', () => {
         it('should call ui.showConfigurationRequired', () => {
-          expect(showConfigurationRequired).not.toHaveBeenCalled();
-
           triggerMessageReceived({configured: false});
 
           expect(showConfigurationRequired).toHaveBeenCalled();
@@ -62,11 +63,15 @@ describe('Transmission module', () => {
       });
 
       describe('and data contains {configured: true}', () => {
-        it('should not call ui.showConfigurationRequired', () => {
-          expect(showConfigurationRequired).not.toHaveBeenCalled();
-
+        beforeEach(() => {
           triggerMessageReceived({configured: true});
+        });
 
+        it('should call ui.hideConfigurationRequired', () => {
+          expect(hideConfigurationRequired).toHaveBeenCalledTimes(1);
+        });
+
+        it('should not call ui.showConfigurationRequired', () => {
           expect(showConfigurationRequired).not.toHaveBeenCalled();
         });
       });

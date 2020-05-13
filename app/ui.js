@@ -5,17 +5,37 @@ const LOADER_STATE = Object.freeze({
   DISABLED: 'disabled',
 });
 
+const _el = (id) => {
+  return document.getElementById(id);
+};
+
 const enableLoader = () => {
-  document.getElementById('loader').state = LOADER_STATE.ENABLED;
+  _el('loader').state = LOADER_STATE.ENABLED;
 };
 
 const disableLoader = () => {
-  document.getElementById('loader').state = LOADER_STATE.DISABLED;
+  _el('loader').state = LOADER_STATE.DISABLED;
 };
 
 const showConfigurationRequired = () => {
   disableLoader();
-  document.getElementById('auth_token_info').style.display = 'inline';
+  _el('auth_token_info').style.display = 'inline';
+  _el('current_entry').style.display = 'none';
 };
 
-export {showConfigurationRequired, enableLoader, LOADER_STATE};
+const hideConfigurationRequired = () => {
+  _el('auth_token_info').style.display = 'none';
+};
+
+const showCurrentEntry = (entry = {}) => {
+  disableLoader();
+  _el('current_entry').style.display = 'inline';
+  _el('current_entry_project').style.fill = entry.color;
+  _el('current_entry_project').text = entry.projectName;
+  _el('current_entry_description').text = entry.desc;
+  _el('current_entry_time_hours').text = '--';
+  _el('current_entry_time_minutes').text = '--';
+  _el('current_entry_time_seconds').text = '--';
+};
+
+export {showConfigurationRequired, hideConfigurationRequired, enableLoader, showCurrentEntry, LOADER_STATE};

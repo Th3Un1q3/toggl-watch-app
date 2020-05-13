@@ -1,65 +1,129 @@
-import {peerSocket, _resetPeerSocket} from 'messaging';
+import _ from 'lodash';
 import {settingsStorage, _resetSettings} from 'settings';
 import {MESSAGE_TYPE} from '../common/message-types';
 import {bootstrap} from './bootstrap';
 import {API_TOKEN_SETTINGS_STORAGE_KEY} from '../common/constants';
+import {Transmitter, sendMessage, COMPANION_QUEUE_SIZE} from '../common/transmitter';
+import {API} from './api';
+import {Tracking} from './tracking';
+
+jest.mock('../common/transmitter');
+jest.mock('./api');
+jest.mock('./tracking');
 
 describe('Companion app bootstrap', () => {
+  const trackingInstance = {
+    initialize: jest.fn(),
+  };
+
+  const apiInstance = () => _.last(API.mock.instances);
+
   beforeEach(() => {
-    _resetPeerSocket();
     _resetSettings();
-    bootstrap();
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    Tracking.mockReturnValue(trackingInstance);
   });
 
-  afterEach(() => {
-    console.log.mockRestore();
-  });
+  describe('when api not authenticated', () => {
+    beforeEach(() => {
+      settingsStorage.setItem(API_TOKEN_SETTINGS_STORAGE_KEY, 'token');
 
-  it('should subscribe on settings change', () => {
-    expect(settingsStorage._onchangeHandler).toEqual(expect.any(Function));
-    peerSocket._readyState = peerSocket.OPEN;
-    settingsStorage._onchangeHandler();
-    expect(peerSocket.send).toHaveBeenCalledTimes(1);
-    expect(peerSocket.send).toHaveBeenCalledWith({
-      type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
-      data: {configured: false},
+      bootstrap();
+    });
+
+    it('should clear api token in settings', () => {
+      expect(settingsStorage.getItem(API_TOKEN_SETTINGS_STORAGE_KEY)).toEqual('token');
+
+      expect(apiInstance().handleUnauthorizedWith).toHaveBeenCalledWith(expect.any(Function));
+
+      const [handler] = _.last(apiInstance().handleUnauthorizedWith.mock.calls);
+
+      handler();
+
+      expect(settingsStorage.getItem(API_TOKEN_SETTINGS_STORAGE_KEY)).not.toBeDefined();
+      expect(sendMessage).toHaveBeenLastCalledWith({
+        type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
+        data: {configured: false},
+      });
     });
   });
 
-  it('should setup console log when messaging error is triggered', () => {
-    const code = '236526';
-    const message = 'message body';
-
-    expect(console.log).not.toHaveBeenCalled();
+  it('should initiate api', () => {
+    expect(API).not.toHaveBeenCalled();
 
     bootstrap();
 
-    expect(peerSocket._onerrorHandler).toEqual(expect.any(Function));
+    expect(API).toHaveBeenCalledTimes(1);
+  });
 
-    peerSocket._onerrorHandler({code, message});
+  it('should create transmitter instance with correct queue size', () => {
+    expect(Transmitter).not.toHaveBeenCalled();
 
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining(code));
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining(message));
+    bootstrap();
+
+    expect(Transmitter).toHaveBeenCalledTimes(1);
+    expect(Transmitter).toHaveBeenCalledWith({queueSize: COMPANION_QUEUE_SIZE});
+  });
+
+  it('should create tracking instance with api passed', () => {
+    expect(Tracking).not.toHaveBeenCalled();
+
+    bootstrap();
+
+    expect(Tracking).toHaveBeenCalledTimes(1);
+    expect(Tracking).toHaveBeenCalledWith({api: apiInstance(), transmitter: new Transmitter()});
+  });
+
+  describe('on settings change', () => {
+    beforeEach(() => {
+      bootstrap();
+
+      settingsStorage.setItem(API_TOKEN_SETTINGS_STORAGE_KEY, 'token');
+
+      sendMessage.mockClear();
+    });
+
+    it('should subscribe on updates', () => {
+      expect(settingsStorage._onchangeHandler).toEqual(expect.any(Function));
+    });
+
+    it('should update token in api', () => {
+      expect(apiInstance().updateToken).not.toHaveBeenCalled();
+
+      settingsStorage._onchangeHandler();
+
+      expect(apiInstance().updateToken).toHaveBeenCalledWith('token');
+    });
+
+    it('should call initialize on tracking instance', () => {
+      expect(trackingInstance.initialize).not.toHaveBeenCalled();
+
+      settingsStorage._onchangeHandler();
+
+      expect(trackingInstance.initialize).toHaveBeenCalledTimes(1);
+    });
+
+    it('should send updates of api token statuses', () => {
+      expect(sendMessage).not.toHaveBeenCalled();
+
+      settingsStorage._onchangeHandler();
+
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(sendMessage).toHaveBeenLastCalledWith({
+        type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
+        data: {configured: true},
+      });
+    });
   });
 
   describe('when api token is not defined', () => {
     it('should send message to show instructions on device', () => {
-      expect(peerSocket.send).not.toHaveBeenCalled();
+      expect(sendMessage).not.toHaveBeenCalled();
 
-      peerSocket._readyState = peerSocket.CLOSED;
+      bootstrap();
 
-      expect(peerSocket._onopenHandler).toEqual(expect.any(Function));
-      peerSocket._onopenHandler();
-
-      expect(peerSocket.send).not.toHaveBeenCalled();
-
-      peerSocket._readyState = peerSocket.OPEN;
-
-      peerSocket._onopenHandler();
-
-      expect(peerSocket.send).toHaveBeenCalledTimes(1);
-      expect(peerSocket.send).toHaveBeenCalledWith({
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(sendMessage).toHaveBeenLastCalledWith({
         type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
         data: {configured: false},
       });
@@ -69,15 +133,18 @@ describe('Companion app bootstrap', () => {
   describe('when api token defined', () => {
     beforeEach(() => {
       settingsStorage.setItem(API_TOKEN_SETTINGS_STORAGE_KEY, 'token');
+
+      bootstrap();
+    });
+
+    it('should create api instance with api token', () => {
+      expect(API).toHaveBeenCalledTimes(1);
+      expect(API).toHaveBeenCalledWith({token: 'token'});
     });
 
     it('send api token present', () => {
-      peerSocket._readyState = peerSocket.OPEN;
-
-      peerSocket._onopenHandler();
-
-      expect(peerSocket.send).toHaveBeenCalledTimes(1);
-      expect(peerSocket.send).toHaveBeenCalledWith({
+      expect(sendMessage).toHaveBeenCalledTimes(1);
+      expect(sendMessage).toHaveBeenLastCalledWith({
         type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
         data: {configured: true},
       });

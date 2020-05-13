@@ -1,10 +1,12 @@
 {
+  "license": "MIT",
   "fitbit": {
     "appUUID": "56da955a-6901-45ab-9b0e-460548a5a464",
     "appType": "app",
     "appDisplayName": "Toggl",
-    "iconFile": "resources/icon.png",
+    "iconFile": "resources/images/icon.png",
     "wipeColor": "#607d8b",
+    "_TODO                                                    ": "change color and icon",
     "requestedPermissions": [
       "access_internet"
     ],
@@ -22,6 +24,8 @@
     "defaultLanguage": "en-US"
   },
   "devDependencies": {
+    "faker": "^4.1.0",
+    "lodash": "^4.17.15",
     "@babel/preset-env": "^7.9.5",
     "@fitbit/sdk": "~4.1.0",
     "babel-core": "^6.26.3",
@@ -36,6 +40,6 @@
   },
   "scripts": {
     "test:unit": "jest",
-    "lint": "eslint ."
+    "lint": "eslint . --ignore-pattern node_modules/"
   }
 }

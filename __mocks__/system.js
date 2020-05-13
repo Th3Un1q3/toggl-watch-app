@@ -3,7 +3,8 @@
  */
 
 /**
- * Class is responsible for monitoring https://dev.fitbit.com/build/reference/device-api/system/#interface-memorypressuremonitor
+ * Class is responsible for monitoring
+ * https://dev.fitbit.com/build/reference/device-api/system/#interface-memorypressuremonitor
  */
 class MemoryMonitorMock {
   /**
