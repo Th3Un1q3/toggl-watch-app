@@ -61,7 +61,7 @@ class API {
 
     if (response.ok) {
       const resp = await response.json();
-      debug(resp); // TODO: remove debugger
+      debug(resp);
       return resp;
     }
 
@@ -82,6 +82,14 @@ class API {
   handleUnauthorizedWith(handler) {
     this._unauthenticatedHandler = handler;
     return this;
+  }
+
+  /**
+   * Returns time entries list
+   * @return {Promise<Object>}
+   */
+  async fetchTimeEntries() {
+    return await this.request('me/time_entries');
   }
 
   /**

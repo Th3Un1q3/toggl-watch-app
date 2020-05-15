@@ -1,5 +1,5 @@
 import {peerSocket, _resetPeerSocket} from 'messaging';
-import {initIncomingMessagesHandler} from './transmission';
+import { initIncomingMessagesHandler, TIMER_UPDATE_INTERVAL_MS } from './transmission';
 import {hideConfigurationRequired, showConfigurationRequired, showCurrentEntry} from './ui';
 import {MESSAGE_TYPE} from '../common/message-types';
 import {timeEntryBody} from '../utils/factories/time-entries';
@@ -17,6 +17,8 @@ describe('Transmission module', () => {
     });
 
     describe('when message with type CURRENT_ENTRY_UPDATE received', () => {
+      let currentEntry;
+
       const triggerMessageReceived = (data) => {
         peerSocket._onmessageHandler({
           data: {
@@ -26,15 +28,34 @@ describe('Transmission module', () => {
         });
       };
 
-      it('should call ui.showCurrentEntry with entry params', () => {
-        const currentEntry = timeEntryBody();
+      beforeEach(() => {
+        currentEntry = timeEntryBody();
+      });
 
+      it('should call ui.showCurrentEntry with entry params', () => {
         expect(showCurrentEntry).not.toHaveBeenCalled();
 
         triggerMessageReceived(currentEntry);
 
         expect(showCurrentEntry).toHaveBeenCalledTimes(1);
-        expect(showCurrentEntry).toHaveBeenCalledWith(currentEntry);
+        expect(showCurrentEntry).toHaveBeenLastCalledWith(currentEntry);
+      });
+
+      it('should call show current entry every second since then', () => {
+        triggerMessageReceived(currentEntry);
+        jest.advanceTimersByTime(TIMER_UPDATE_INTERVAL_MS);
+
+        expect(showCurrentEntry).toHaveBeenCalledTimes(2);
+        expect(showCurrentEntry).toHaveBeenLastCalledWith(currentEntry);
+
+        showCurrentEntry.mockClear();
+
+        const newEntry = timeEntryBody();
+        triggerMessageReceived(newEntry);
+
+        jest.advanceTimersByTime(TIMER_UPDATE_INTERVAL_MS*5);
+        expect(showCurrentEntry).toHaveBeenLastCalledWith(newEntry);
+        expect(showCurrentEntry).not.toHaveBeenCalledWith(currentEntry);
       });
     });
 

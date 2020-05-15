@@ -12,7 +12,7 @@ const ASSUMED_BODY = `
     <div>
         <div id="current_entry_time_hours"></div>
         <div id="current_entry_time_minutes"></div>
-        <div id="current_entry_time_seconds"></div>
+        <div class="some" id="current_entry_time_seconds"></div>
     </div>
 </div>
 <div id="loader">loader</div>

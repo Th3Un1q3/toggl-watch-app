@@ -33,8 +33,8 @@
       <text id="current_entry_time_minutes" class="current-entry__time current-entry__time-minutes">
         --
       </text>
-      <text id="current_entry_time_seconds"
-            class="current-entry__time current-entry__time-seconds current-entry__time--active">--
+      <text id="current_entry_time_seconds" class="current-entry__time current-entry__time-seconds">
+        --
       </text>
     </section>
 
@@ -57,7 +57,7 @@
 
   <use id="loader" href="#spinner"/>
 
-  <rect id="auth_token_info" fill="fb-black" width="100%" height="100%">
+  <rect id="auth_token_info">
     <use href="#mixed-text-center-mid" height="100%" fill="fb-yellow">
       <set href="#header/text" attributeName="text-buffer" to="_token_config_required_title"/>
       <set href="#copy/text" attributeName="text-buffer" to="_token_config_required_body"/>

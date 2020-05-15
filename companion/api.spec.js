@@ -122,6 +122,26 @@ describe('API', () => {
       });
     });
 
+    describe('.fetchTimeEntries', () => {
+      let entriesHistory;
+
+      beforeEach(() => {
+        entriesHistory = _.times(5, timeEntryBody);
+
+        request.mockResolvedValue(entriesHistory);
+      });
+
+      it('should call request with me/time_entries', async () => {
+        await api.fetchTimeEntries();
+
+        expect(request).toHaveBeenLastCalledWith('me/time_entries');
+      });
+
+      it('should return entries history list', async () => {
+        expect(await api.fetchTimeEntries()).toEqual(entriesHistory);
+      });
+    });
+
     describe('.fetchCurrentEntry', () => {
       let currentEntry;
 

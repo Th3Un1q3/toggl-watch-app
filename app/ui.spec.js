@@ -27,6 +27,13 @@ describe('User Interface module', () => {
     hours = document.getElementById('current_entry_time_hours');
     minutes = document.getElementById('current_entry_time_minutes');
     seconds = document.getElementById('current_entry_time_seconds');
+    jest.spyOn(Date, 'now').mockReturnValue(new Date().getTime());
+  });
+
+  afterEach(() => {
+    if (Date.now.mock) {
+      Date.now.mockRestore();
+    }
   });
 
   test('ui elements present and have correct defaults', () => {
@@ -50,17 +57,19 @@ describe('User Interface module', () => {
 
     describe('when there is entry', () => {
       let currentEntryBody;
+      const start = 1589285423000;
 
       beforeEach(() => {
         currentEntryBody = {
           id: faker.random.number(),
           desc: faker.lorem.sentence(),
-          start: 1589285423000,
-          end: 1589285463000,
+          start,
+          stop: start + faker.random.number(),
           billable: true,
           color: '#a0a0a0',
           projectName: faker.hacker.adjective(),
         };
+
         showCurrentEntry(currentEntryBody);
       });
 
@@ -84,15 +93,87 @@ describe('User Interface module', () => {
         expect(description.text).toEqual(currentEntryBody.desc);
       });
 
-      it('should set time to empty values', () => {
-        expect(hours.text).toEqual('--');
-        expect(minutes.text).toEqual('--');
-        expect(seconds.text).toEqual('--');
+      describe('timer', () => {
+        const timeSectionActiveClass = 'current-entry__time--active';
+
+        it('should set time to empty values', () => {
+          expect(hours.text).toEqual('--');
+          expect(minutes.text).toEqual('--');
+          expect(seconds.text).toEqual('--');
+        });
+
+        it('should set active class to seconds', () => {
+          expect(hours.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+          expect(minutes.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+          expect(seconds.class).toEqual(expect.stringContaining(timeSectionActiveClass));
+        });
+
+        describe('when entry is not stopped', () => {
+          beforeEach(() => {
+            const extraSecondsInMS = 9.2 * 1000;
+            const extraMinutesInMS = 15 * 1000 * 60;
+
+            Date.now.mockReturnValue(start + extraSecondsInMS + extraMinutesInMS);
+
+            showCurrentEntry({
+              ...currentEntryBody,
+              stop: null,
+            });
+          });
+
+          it('should set corresponding timer section texts', () => {
+            expect(hours.text).toEqual('00');
+            expect(minutes.text).toEqual('15');
+            expect(seconds.text).toEqual('09');
+          });
+
+          it('should add active class to minutes', () => {
+            expect(hours.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+            expect(minutes.class).toEqual(expect.stringContaining(timeSectionActiveClass));
+            expect(seconds.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+          });
+
+          describe('when difference has hours', () => {
+            beforeEach(() => {
+              const extraSecondsInMS = 9.2 * 1000;
+              const extraMinutesInMS = 15 * 60 * 1000;
+              const extraHoursInMS = 2 * 60 * 60 * 1000;
+
+              Date.now.mockReturnValue(start + extraSecondsInMS + extraMinutesInMS + extraHoursInMS);
+
+              showCurrentEntry({
+                ...currentEntryBody,
+                stop: null,
+              });
+            });
+
+            it('should mark hours section as active', () => {
+              expect(hours.class).toEqual(expect.stringContaining(timeSectionActiveClass));
+              expect(minutes.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+              expect(seconds.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+            });
+          });
+
+          describe('when difference has only seconds', () => {
+            beforeEach(() => {
+              const extraSecondsInMS = 9.2 * 1000;
+
+              Date.now.mockReturnValue(start + extraSecondsInMS);
+
+              showCurrentEntry({
+                ...currentEntryBody,
+                stop: null,
+              });
+            });
+
+            it('should mark seconds section as active', () => {
+              expect(hours.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+              expect(minutes.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+              expect(seconds.class).toEqual(expect.stringContaining(timeSectionActiveClass));
+            });
+          });
+        });
       });
-
-      it.todo('should set active class to seconds');
-
-      it.todo('should start time updating');
     });
   });
 
