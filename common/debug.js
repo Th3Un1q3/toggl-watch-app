@@ -1,5 +1,5 @@
 const debug = (...messages) => {
-  console.log(JSON.stringify(messages));
+  false && console.log(JSON.stringify(messages));
 };
 
 export {
