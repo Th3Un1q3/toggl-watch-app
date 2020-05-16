@@ -6,17 +6,17 @@
 import {JSDOM} from 'jsdom';
 
 const ASSUMED_BODY = `
-<div id="current_entry" style="display: none">
-    <div id="current_entry_project" style="fill: white"></div>
-    <div id="current_entry_description"></div>
+<div id="current-entry" style="display: none">
+    <div id="current-entry-project" style="fill: white"></div>
+    <div id="current-entry-description"></div>
     <div>
-        <div id="current_entry_time_hours"></div>
-        <div id="current_entry_time_minutes"></div>
-        <div class="some" id="current_entry_time_seconds"></div>
+        <div id="current-entry-timer-hours"></div>
+        <div id="current-entry-timer-minutes"></div>
+        <div class="some" id="current-entry-timer-seconds"></div>
     </div>
 </div>
 <div id="loader">loader</div>
-<div id="auth_token_info" style="display: none">content</div>
+<div id="configuration-instruction" style="display: none">content</div>
 `;
 
 const dom = new JSDOM(`<body>

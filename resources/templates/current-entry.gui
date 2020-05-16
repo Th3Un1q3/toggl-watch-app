@@ -1,0 +1,66 @@
+<svg>
+  <defs>
+    <link rel="import" href="/mnt/sysassets/widgets/combo_button_widget.gui"/>
+    <link rel="import" href="/mnt/sysassets/widgets/marquee_text_widget.gui" />
+    <symbol id="current-entry-screen">
+      <rect class="current-entry">
+        <text id="current-time" class="current-time">12:00</text>
+        <use
+                id="current-entry-project"
+                href="#marquee-text"
+                mode="0"
+                value="50"
+        >
+          <set href="group/separator" attributeName="width" to="75"/>
+        </use>
+        <use
+                id="current-entry-description"
+                href="#marquee-text"
+                mode="0"
+                value="120"
+        >
+          <set href="group/separator" attributeName="width" to="75"/>
+        </use>
+
+        <line class="current-entry__screen-separator"/>
+
+        <section id="current-entry-timer" class="current-entry__time-wrapper">
+          <section class="current-entry__separator-wrapper">
+            <text class="current-entry__time current-entry__separator">:</text>
+            <text class="current-entry__time current-entry__separator current-entry__separator--last">
+              :
+            </text>
+          </section>
+
+          <text id="current-entry-timer-hours" class="current-entry__time current-entry__time-hours">--
+          </text>
+          <text id="current-entry-timer-minutes" class="current-entry__time current-entry__time-minutes">
+            --
+          </text>
+          <text id="current-entry-timer-seconds" class="current-entry__time current-entry__time-seconds">
+            --
+          </text>
+        </section>
+
+        <section id="current-entry-controls">
+          <use id="delete-button" href="#combo-button-upper-right" fill="fb-red">
+            <set href="combo-button-icon" attributeName="href"
+                 to="images/fitbit_icons/btn_combo_x_p.png"/>
+            <set href="combo-button-icon-press" attributeName="href"
+                 to="images/fitbit_icons/btn_combo_x_press_p.png"/>
+            <set href="combo-button-stroke" attributeName="display" to="inline"/>
+          </use>
+
+          <use id="stop-button" href="#combo-button-lower-right" fill="fb-green">
+            <set href="combo-button-icon" attributeName="href"
+                 to="images/fitbit_icons/btn_combo_pause_p.png"/>
+            <set href="combo-button-icon-press" attributeName="href"
+                 to="images/fitbit_icons/btn_combo_pause_press_p.png"/>
+            <set href="combo-button-stroke" attributeName="display" to="inline"/>
+          </use>
+        </section>
+      </rect>
+    </symbol>
+  </defs>
+
+</svg>

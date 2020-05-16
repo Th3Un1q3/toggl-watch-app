@@ -5,7 +5,6 @@
     <link rel="import" href="/mnt/sysassets/widgets/dynamic_textarea.gui"/>
     <link rel="import" href="/mnt/sysassets/widgets/mixed_text_widget.gui"/>
     <link rel="import" href="/mnt/sysassets/widgets/spinner_widget.gui" />
-    <link rel="import" href="/mnt/sysassets/widgets/combo_button_widget.gui"/>
-    <link rel="import" href="/mnt/sysassets/widgets/marquee_text_widget.gui" />
+    <link rel="import" href="/mnt/assets/resources/templates/current-entry.gui" />
   </defs>
 </svg>

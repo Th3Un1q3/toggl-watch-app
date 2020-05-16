@@ -59,6 +59,8 @@ class Transmitter {
       throw new Error('Subscription requires message type and handler to be defined');
     }
 
+    debug('subscribed on', messageType);
+
     this.messageHandler.set(messageType, [...this._handlersOfType(messageType), handler]);
   }
 
@@ -108,6 +110,7 @@ class Transmitter {
     const messageHandlers = new Map();
 
     peerSocket.onmessage = ({data: message}) => {
+      debug('received', {message});
       const {type, data} = message || {};
 
       if (type) {

@@ -1,6 +1,7 @@
 import {MESSAGE_TYPE} from '../common/message-types';
 import {hideConfigurationRequired, showConfigurationRequired, showCurrentEntry} from './ui';
 import {DEVICE_QUEUE_SIZE, Transmitter} from '../common/transmitter';
+import {debug} from '../common/debug';
 
 const TIMER_UPDATE_INTERVAL_MS = 1000;
 
@@ -16,6 +17,7 @@ const initIncomingMessagesHandler = ({transmitter = new Transmitter({queueSize: 
   });
 
   transmitter.onMessage(MESSAGE_TYPE.CURRENT_ENTRY_UPDATE, (entry) => {
+    debug('received', entry);
     showCurrentEntry(entry);
 
     if (currentEntryUpdateInterval) {

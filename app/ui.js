@@ -110,42 +110,42 @@ const disableLoader = () => {
 
 const showConfigurationRequired = () => {
   disableLoader();
-  _el('auth_token_info').show();
-  _el('current_entry').hide();
+  _el('configuration-instruction').show();
+  _el('current-entry').hide();
 };
 
 const hideConfigurationRequired = () => {
-  _el('auth_token_info').hide();
+  _el('configuration-instruction').hide();
 };
 
 const _assignActiveClass = (difference = new Date(0)) => {
-  _el('current_entry_time_hours').removeClass(TIMER_SECTION_ACTIVE_CLASS);
-  _el('current_entry_time_minutes').removeClass(TIMER_SECTION_ACTIVE_CLASS);
-  _el('current_entry_time_seconds').removeClass(TIMER_SECTION_ACTIVE_CLASS);
+  _el('current-entry-timer-hours').removeClass(TIMER_SECTION_ACTIVE_CLASS);
+  _el('current-entry-timer-minutes').removeClass(TIMER_SECTION_ACTIVE_CLASS);
+  _el('current-entry-timer-seconds').removeClass(TIMER_SECTION_ACTIVE_CLASS);
 
   if (difference.getUTCHours()) {
-    return _el('current_entry_time_hours').addClass(TIMER_SECTION_ACTIVE_CLASS);
+    return _el('current-entry-timer-hours').addClass(TIMER_SECTION_ACTIVE_CLASS);
   }
 
   if (difference.getUTCMinutes()) {
-    return _el('current_entry_time_minutes').addClass(TIMER_SECTION_ACTIVE_CLASS);
+    return _el('current-entry-timer-minutes').addClass(TIMER_SECTION_ACTIVE_CLASS);
   }
 
-  _el('current_entry_time_seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
+  _el('current-entry-timer-seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
 };
 
 const showCurrentEntry = (entry = {}) => {
   disableLoader();
-  _el('current_entry').show();
-  _el('current_entry_project').style.fill = entry.color;
-  _el('current_entry_project').text = entry.projectName;
-  _el('current_entry_description').text = entry.desc;
+  _el('current-entry').show();
+  _el('current-entry-project').style.fill = entry.color;
+  _el('current-entry-project').text = entry.projectName;
+  _el('current-entry-description').text = entry.desc;
 
   if (entry.stop) {
-    _el('current_entry_time_hours').text = '--';
-    _el('current_entry_time_minutes').text = '--';
-    _el('current_entry_time_seconds').text = '--';
-    _el('current_entry_time_seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
+    _el('current-entry-timer-hours').text = '--';
+    _el('current-entry-timer-minutes').text = '--';
+    _el('current-entry-timer-seconds').text = '--';
+    _el('current-entry-timer-seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
     _assignActiveClass();
     return;
   }
@@ -154,9 +154,9 @@ const showCurrentEntry = (entry = {}) => {
 
   _assignActiveClass(difference);
 
-  _el('current_entry_time_hours').text = _formatTimeSection(difference.getUTCHours());
-  _el('current_entry_time_minutes').text = _formatTimeSection(difference.getUTCMinutes());
-  _el('current_entry_time_seconds').text = _formatTimeSection(difference.getUTCSeconds());
+  _el('current-entry-timer-hours').text = _formatTimeSection(difference.getUTCHours());
+  _el('current-entry-timer-minutes').text = _formatTimeSection(difference.getUTCMinutes());
+  _el('current-entry-timer-seconds').text = _formatTimeSection(difference.getUTCSeconds());
 };
 
 export {showConfigurationRequired, hideConfigurationRequired, enableLoader, showCurrentEntry, LOADER_STATE};

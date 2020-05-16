@@ -19,14 +19,14 @@ describe('User Interface module', () => {
 
   beforeEach(() => {
     document._reset();
-    configurationRequired = document.getElementById('auth_token_info');
+    configurationRequired = document.getElementById('configuration-instruction');
     loader = document.getElementById('loader');
-    currentEntry = document.getElementById('current_entry');
-    project = document.getElementById('current_entry_project');
-    description = document.getElementById('current_entry_description');
-    hours = document.getElementById('current_entry_time_hours');
-    minutes = document.getElementById('current_entry_time_minutes');
-    seconds = document.getElementById('current_entry_time_seconds');
+    currentEntry = document.getElementById('current-entry');
+    project = document.getElementById('current-entry-project');
+    description = document.getElementById('current-entry-description');
+    hours = document.getElementById('current-entry-timer-hours');
+    minutes = document.getElementById('current-entry-timer-minutes');
+    seconds = document.getElementById('current-entry-timer-seconds');
     jest.spyOn(Date, 'now').mockReturnValue(new Date().getTime());
   });
 
@@ -77,7 +77,7 @@ describe('User Interface module', () => {
         expect(loader.state).toEqual(LOADER_STATE.DISABLED);
       });
 
-      it('should make #current_entry visible', () => {
+      it('should make #current-entry visible', () => {
         expect(currentEntry.style.display).toEqual('inline');
       });
 
@@ -187,7 +187,7 @@ describe('User Interface module', () => {
   describe('hideConfigurationRequired', () => {
     beforeEach(showConfigurationRequired);
 
-    it('should hide #auth_token_info', () => {
+    it('should hide #configuration-instruction', () => {
       hideConfigurationRequired();
       expect(configurationRequired.style.display).toEqual('none');
     });
@@ -199,7 +199,7 @@ describe('User Interface module', () => {
       showConfigurationRequired();
     });
 
-    it('should show #auth_token_info', () => {
+    it('should show #configuration-instruction', () => {
       expect(configurationRequired.style.display).toEqual('inline');
     });
 
