@@ -1,7 +1,66 @@
 <svg viewport-fill="black">
-  <use id="auth_token_info" href="#mixed-text-center-mid" height="100%" fill="fb-yellow">
+  <rect id="current_entry">
+    <text id="current_time">12:00</text>
+    <use
+            id="current_entry_project"
+            href="#marquee-text"
+            mode="0"
+            value="50"
+    >
+      <set href="group/separator" attributeName="width" to="75"/>
+    </use>
+    <use
+            id="current_entry_description"
+            href="#marquee-text"
+            mode="0"
+            value="120"
+    >
+      <set href="group/separator" attributeName="width" to="75"/>
+    </use>
+
+    <line class="current-entry__screen-separator"/>
+
+    <section id="current_entry_time" class="current-entry__time-wrapper">
+      <section class="current-entry__separator-wrapper">
+        <text class="current-entry__time current-entry__separator">:</text>
+        <text class="current-entry__time current-entry__separator current-entry__separator--last">
+          :
+        </text>
+      </section>
+
+      <text id="current_entry_time_hours" class="current-entry__time current-entry__time-hours">--
+      </text>
+      <text id="current_entry_time_minutes" class="current-entry__time current-entry__time-minutes">
+        --
+      </text>
+      <text id="current_entry_time_seconds" class="current-entry__time current-entry__time-seconds">
+        --
+      </text>
+    </section>
+
+    <use id="delete_button" href="#combo-button-upper-right" fill="fb-red">
+      <set href="combo-button-icon" attributeName="href"
+           to="images/fitbit_icons/btn_combo_x_p.png"/>
+      <set href="combo-button-icon-press" attributeName="href"
+           to="images/fitbit_icons/btn_combo_x_press_p.png"/>
+      <set href="combo-button-stroke" attributeName="display" to="inline"/>
+    </use>
+
+    <use id="stop_button" href="#combo-button-lower-right" fill="fb-green">
+      <set href="combo-button-icon" attributeName="href"
+           to="images/fitbit_icons/btn_combo_pause_p.png"/>
+      <set href="combo-button-icon-press" attributeName="href"
+           to="images/fitbit_icons/btn_combo_pause_press_p.png"/>
+      <set href="combo-button-stroke" attributeName="display" to="inline"/>
+    </use>
+  </rect>
+
+  <use id="loader" href="#spinner"/>
+
+  <rect id="auth_token_info">
+    <use href="#mixed-text-center-mid" height="100%" fill="fb-yellow">
       <set href="#header/text" attributeName="text-buffer" to="_token_config_required_title"/>
       <set href="#copy/text" attributeName="text-buffer" to="_token_config_required_body"/>
-  </use>
-  <use id="loader" href="#spinner" />
+    </use>
+  </rect>
 </svg>

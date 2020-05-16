@@ -7,9 +7,9 @@ export const bootstrap = () => {
   initIncomingMessagesHandler();
   memory.monitor.onmemorypressurechange = () => {
     const memoryInfo = {
+      used: memory.js.used,
       total: memory.js.total,
       peak: memory.js.peak,
-      used: memory.js.used,
     };
 
     console.log(`Memory: ${JSON.stringify(memoryInfo)}`);

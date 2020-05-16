@@ -57,9 +57,9 @@ describe('App bootstrap', () => {
       );
 
       memory._jsInfo = {
+        used: 3,
         total: 20,
         peak: 15,
-        used: 3,
       };
 
       monitorSubscriber();

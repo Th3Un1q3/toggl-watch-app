@@ -3,8 +3,9 @@
  * @type {ReadyState}
  */
 const STATE = Object.freeze({
-  OPEN: 'OPEN',
-  CLOSED: 'CLOSED',
+  OPEN: 'open',
+  CLOSED: 'closed',
+  ENDED: 'ended',
 });
 
 /**
@@ -19,6 +20,8 @@ class PeerSocket {
     this._onmessageHandler = null;
     this._onopenHandler = null;
     this._onerrorHandler = null;
+    this._onbufferedamountdecreaseHandler = null;
+    this._bufferedAmount = 0;
     Object.assign(this, STATE);
     this._readyState = STATE.CLOSED;
     this.send = jest.fn();
@@ -30,6 +33,14 @@ class PeerSocket {
    */
   set onmessage(callback) {
     this._onmessageHandler = callback;
+  }
+
+  /**
+   * Set a buffer decreasing tracking
+   * @param {function} callback
+   */
+  set onbufferedamountdecrease(callback) {
+    this._onbufferedamountdecreaseHandler = callback;
   }
 
   /**
@@ -53,6 +64,14 @@ class PeerSocket {
    */
   get readyState() {
     return this._readyState;
+  }
+
+  /**
+   * Returns already occupied buffer amount in bytes
+   * @return {number}
+   */
+  get bufferedAmount() {
+    return this._bufferedAmount;
   }
 }
 
