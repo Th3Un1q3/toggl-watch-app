@@ -63,8 +63,6 @@ describe('User Interface module', () => {
         currentEntryBody = {
           id: faker.random.number(),
           desc: faker.lorem.sentence(),
-          start,
-          stop: start + faker.random.number(),
           billable: true,
           color: '#a0a0a0',
           projectName: faker.hacker.adjective(),
@@ -115,10 +113,12 @@ describe('User Interface module', () => {
 
             Date.now.mockReturnValue(start + extraSecondsInMS + extraMinutesInMS);
 
-            showCurrentEntry({
+            currentEntryBody = {
               ...currentEntryBody,
-              stop: null,
-            });
+              start,
+            };
+
+            showCurrentEntry(currentEntryBody);
           });
 
           it('should set corresponding timer section texts', () => {
@@ -141,10 +141,7 @@ describe('User Interface module', () => {
 
               Date.now.mockReturnValue(start + extraSecondsInMS + extraMinutesInMS + extraHoursInMS);
 
-              showCurrentEntry({
-                ...currentEntryBody,
-                stop: null,
-              });
+              showCurrentEntry(currentEntryBody);
             });
 
             it('should mark hours section as active', () => {
@@ -160,10 +157,7 @@ describe('User Interface module', () => {
 
               Date.now.mockReturnValue(start + extraSecondsInMS);
 
-              showCurrentEntry({
-                ...currentEntryBody,
-                stop: null,
-              });
+              showCurrentEntry(currentEntryBody);
             });
 
             it('should mark seconds section as active', () => {
@@ -175,6 +169,36 @@ describe('User Interface module', () => {
         });
       });
     });
+  });
+
+  describe('enableCurrentEntryDeletion', () => {
+    it.todo('should show current entry delete button');
+
+    it.todo('should call tracking.deleteCurrentEntry when screen button clicked');
+
+    it.todo('should call tracking.deleteCurrentEntry when physical button clicked');
+  });
+
+  describe('disableCurrentEntryDeletion', () => {
+    it.todo('should hide screen delete button');
+
+    it.todo('should de-attach physical button click handler');
+  });
+
+  describe('enableCurrentEntryResuming', () => {
+    it.todo('should set button image to play');
+
+    it.todo('should call tracking.resumeCurrentEntry when screen button clicked');
+
+    it.todo('should call tracking.resumeCurrentEntry when physical button clicked');
+  });
+
+  describe('enableCurrentEntryPausing', () => {
+    it.todo('should set pause image to the button');
+
+    it.todo('should call tracking.stopCurrentEntry when screen button clicked');
+
+    it.todo('should call tracking.stopCurrentEntry when physical button clicked');
   });
 
   describe('enableLoader', () => {

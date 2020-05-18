@@ -1,5 +1,10 @@
 
-import {showCurrentEntry} from './ui';
+import {
+  disableCurrentEntryDeletion,
+  enableCurrentEntryDeletion,
+  enableCurrentEntryPausing, enableCurrentEntryResuming,
+  showCurrentEntry,
+} from './ui';
 
 const TIMER_UPDATE_INTERVAL_MS = 1000;
 
@@ -12,7 +17,7 @@ class Tracking {
    */
   constructor() {
     this.currentEntry = null;
-    this._currentEntryRefreshInterval = null;
+    this._currentEntryRefresh = null;
   }
 
   /**
@@ -22,12 +27,37 @@ class Tracking {
   currentEntryUpdated(entry) {
     this.currentEntry = entry;
     showCurrentEntry(this.currentEntry);
+    this._configureCurrentEntryControls();
 
-    if (this._currentEntryRefreshInterval) {
-      clearInterval(this._currentEntryRefreshInterval);
+    this._launchCurrentEntryRefresh();
+  }
+
+  /**
+   * Configures required ui controls depend of what
+   * is applicable to the current time entry
+   * @private
+   */
+  _configureCurrentEntryControls() {
+    if (this.currentEntry.start) {
+      enableCurrentEntryPausing(this);
+      enableCurrentEntryDeletion(this);
+      return;
     }
 
-    this._currentEntryRefreshInterval = setInterval(() => {
+    enableCurrentEntryResuming(this);
+    disableCurrentEntryDeletion(this);
+  }
+
+  /**
+   * Starts screen refresh process
+   * @private
+   */
+  _launchCurrentEntryRefresh() {
+    if (this._currentEntryRefresh) {
+      clearInterval(this._currentEntryRefresh);
+    }
+
+    this._currentEntryRefresh = setInterval(() => {
       showCurrentEntry(this.currentEntry);
     }, TIMER_UPDATE_INTERVAL_MS);
   }

@@ -1,5 +1,5 @@
 import _ from 'lodash';
-
+import faker from 'faker';
 import {
   CURRENT_ENTRY_REFRESH_INTERVAL_MS,
   NO_PROJECT_COLOR,
@@ -98,7 +98,7 @@ describe('Tracking', () => {
         }));
       });
 
-      it('should send entries updates', async () => {
+      it('should send entries updates in intervals', async () => {
         sendMessage.mockClear();
         await tracking.initialize();
 
@@ -108,7 +108,7 @@ describe('Tracking', () => {
 
         expect(sendMessage).toHaveBeenCalledTimes(1);
 
-        currentEntry = _.without(timeEntryBody());
+        currentEntry = timeEntryBody({description: faker.lorem.word()});
 
         api.fetchCurrentEntry.mockResolvedValueOnce(currentEntry);
 
@@ -159,13 +159,15 @@ describe('Tracking', () => {
           it('should send the first of them', async () => {
             await tracking.initialize();
 
-            expect(sendMessage).toHaveBeenCalledWith({
+            expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+              data: expect.not.objectContaining({start: expect.anything()}),
+            }));
+
+            expect(sendMessage).toHaveBeenLastCalledWith({
               type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
               data: expect.objectContaining({
                 id: lastTimeEntry.id,
                 desc: expect.stringContaining(lastTimeEntry.description.slice(0, 50)),
-                start: Date.parse(lastTimeEntry.start),
-                stop: Date.parse(lastTimeEntry.stop),
                 billable: lastTimeEntry.billable,
               }),
             });
@@ -181,7 +183,7 @@ describe('Tracking', () => {
             await tracking.initialize();
 
             expect(sendMessage).toHaveBeenCalledTimes(1);
-            expect(sendMessage).toHaveBeenCalledWith({
+            expect(sendMessage).toHaveBeenLastCalledWith({
               type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
               data: null,
             });

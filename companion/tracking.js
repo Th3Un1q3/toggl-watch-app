@@ -120,16 +120,13 @@ class Tracking {
       projectName: optimiseStringForDisplaying(project.name),
     } || noProject;
 
-    const stop = this.currentEntry.stop && Date.parse(this.currentEntry.stop);
-
-    const start = Date.parse(this.currentEntry.start);
+    const start = !this.currentEntry.stop && Date.parse(this.currentEntry.start);
 
     return {
       id: this.currentEntry.id,
       desc: optimiseStringForDisplaying(this.currentEntry.description),
       billable: this.currentEntry.billable,
-      start,
-      ...(stop ? {stop} : {}),
+      ...(start ? {start} : {}),
       ...projectInfo,
     };
   }

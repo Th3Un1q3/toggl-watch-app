@@ -2,7 +2,9 @@ const {COMPANION_QUEUE_SIZE, DEVICE_QUEUE_SIZE} = jest.requireActual('../transmi
 
 const sendMessage = jest.fn();
 
-const Transmitter = jest.fn().mockReturnValue({
+const {Transmitter} = jest.genMockFromModule('../transmitter');
+
+Transmitter.mockReturnValue({
   sendMessage,
 });
 

@@ -134,6 +134,14 @@ const _assignActiveClass = (difference = new Date(0)) => {
   _el('current-entry-timer-seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
 };
 
+const enableCurrentEntryDeletion = () => {};
+
+const enableCurrentEntryPausing = () => {};
+
+const enableCurrentEntryResuming = () => {};
+
+const disableCurrentEntryDeletion = () => {};
+
 const showCurrentEntry = (entry = {}) => {
   disableLoader();
   _el('current-entry').show();
@@ -141,7 +149,7 @@ const showCurrentEntry = (entry = {}) => {
   _el('current-entry-project').text = entry.projectName;
   _el('current-entry-description').text = entry.desc;
 
-  if (entry.stop) {
+  if (!entry.start) {
     _el('current-entry-timer-hours').text = '--';
     _el('current-entry-timer-minutes').text = '--';
     _el('current-entry-timer-seconds').text = '--';
@@ -159,4 +167,14 @@ const showCurrentEntry = (entry = {}) => {
   _el('current-entry-timer-seconds').text = _formatTimeSection(difference.getUTCSeconds());
 };
 
-export {showConfigurationRequired, hideConfigurationRequired, enableLoader, showCurrentEntry, LOADER_STATE};
+export {
+  showConfigurationRequired,
+  hideConfigurationRequired,
+  enableLoader,
+  showCurrentEntry,
+  enableCurrentEntryPausing,
+  enableCurrentEntryDeletion,
+  enableCurrentEntryResuming,
+  disableCurrentEntryDeletion,
+  LOADER_STATE,
+};
