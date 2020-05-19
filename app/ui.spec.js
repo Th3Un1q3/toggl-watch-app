@@ -42,12 +42,6 @@ describe('User Interface module', () => {
     jest.spyOn(Date, 'now').mockReturnValue(new Date().getTime());
   });
 
-  afterEach(() => {
-    if (Date.now.mock) {
-      Date.now.mockRestore();
-    }
-  });
-
   test('ui elements present and have correct defaults', () => {
     expect(loader).toBeTruthy();
     expect(configurationRequired).toBeTruthy();

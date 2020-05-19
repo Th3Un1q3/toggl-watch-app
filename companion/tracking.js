@@ -36,7 +36,7 @@ class Tracking {
     this.user = null;
     this.currentEntry = null;
     this.projects = [];
-
+    this._attachCommandsProcessing();
     this.initialize();
   }
 
@@ -48,33 +48,6 @@ class Tracking {
     await this._updateUserData();
     await this._setupCurrentEntryTrack();
     debug('tracking initialized');
-  }
-
-  /**
-   * Starts process of current time entry tracking.
-   * @return {Promise<void>}
-   * @private
-   */
-  async _setupCurrentEntryTrack() {
-    await this.updateCurrentEntry();
-
-    if (this._updateCurrentEntryInterval) {
-      clearInterval(this._updateCurrentEntryInterval);
-    }
-
-    this._updateCurrentEntryInterval = setInterval(() => {
-      this.updateCurrentEntry();
-    }, CURRENT_ENTRY_REFRESH_INTERVAL_MS);
-  }
-
-  /**
-   * Fetch and preserve user specific data for future needs.
-   * @return {Promise<void>}
-   * @private
-   */
-  async _updateUserData() {
-    this.user = await this._api.fetchUserInfo();
-    this.projects = await this._api.fetchProjects();
   }
 
   /**
@@ -94,6 +67,89 @@ class Tracking {
       type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
       data: this._currentEntryMessage,
     });
+  }
+
+  /**
+   * Defines how to process commands received from the device
+   * @private
+   */
+  _attachCommandsProcessing() {
+    this._transmitter.onMessage(MESSAGE_TYPE.STOP_CURRENT_ENTRY, ({stop}) => {
+      this.stopCurrentEntry(stop);
+    });
+
+    this._transmitter.onMessage(MESSAGE_TYPE.RESUME_LAST_ENTRY, ({start}) => {
+      this.resumeLastEntry(start);
+    });
+
+    this._transmitter.onMessage(MESSAGE_TYPE.DELETE_CURRENT_ENTRY, () => {
+      this.deleteCurrentEntry();
+    });
+  }
+
+  /**
+   * Deletes current entry
+   */
+  async deleteCurrentEntry() {
+    await this._api.deleteTimeEntry(this.currentEntry);
+    this.currentEntry = null;
+    await this._setupCurrentEntryTrack();
+  }
+
+  /**
+   * Stops current entry
+   * @param {number} stop
+   */
+  async stopCurrentEntry(stop) {
+    this.currentEntry = {
+      ...this.currentEntry,
+      stop: new Date(stop).toISOString(),
+    };
+
+    await this._api.updateTimeEntry(this.currentEntry);
+    await this._setupCurrentEntryTrack();
+  }
+
+  /**
+   * Starts a new entry based on current/last
+   * @param {number} start
+   */
+  async resumeLastEntry(start) {
+    this.currentEntry = {
+      ...this.currentEntry,
+      stop: null,
+      start: new Date(start).toISOString(),
+    };
+
+    await this._api.createTimeEntry(this.currentEntry);
+    await this._setupCurrentEntryTrack();
+  }
+
+  /**
+   * Starts process of current time entry tracking.
+   * @return {Promise<void>}
+   * @private
+   */
+  async _setupCurrentEntryTrack() {
+    if (this._updateCurrentEntryInterval) {
+      clearInterval(this._updateCurrentEntryInterval);
+    }
+
+    await this.updateCurrentEntry();
+
+    this._updateCurrentEntryInterval = setInterval(() => {
+      this.updateCurrentEntry();
+    }, CURRENT_ENTRY_REFRESH_INTERVAL_MS);
+  }
+
+  /**
+   * Fetch and preserve user specific data for future needs.
+   * @return {Promise<void>}
+   * @private
+   */
+  async _updateUserData() {
+    this.user = await this._api.fetchUserInfo();
+    this.projects = await this._api.fetchProjects();
   }
 
   /**

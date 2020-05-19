@@ -8,7 +8,7 @@ import {
 } from './ui';
 import {timeEntryBody} from '../utils/factories/time-entries';
 import {Tracking, TIMER_UPDATE_INTERVAL_MS} from './tracking';
-import {Transmitter, sendMessage} from '../common/transmitter';
+import {Transmitter} from '../common/transmitter';
 import {MESSAGE_TYPE} from '../common/message-types';
 
 jest.mock('./ui');
@@ -28,12 +28,6 @@ describe('Tracking on device', () => {
     jest.spyOn(Date, 'now').mockReturnValue(now);
   });
 
-  afterEach(() => {
-    if (Date.now.mock) {
-      Date.now.mockRestore();
-    }
-  });
-
   describe('.deleteCurrentEntry', () => {
     beforeEach(() => {
       tracking.currentEntryUpdated(currentEntry);
@@ -41,8 +35,8 @@ describe('Tracking on device', () => {
     });
 
     it('should call transmitter.sendMessage with {id: currentEntry.id}', () => {
-      expect(sendMessage).toHaveBeenCalledTimes(1);
-      expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
         data: {
           id: currentEntry.id,
         },
@@ -50,7 +44,7 @@ describe('Tracking on device', () => {
     });
 
     it('should call transmitter.sendMessage with message.type:DELETE_CURRENT_ENTRY', () => {
-      expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
         type: MESSAGE_TYPE.DELETE_CURRENT_ENTRY,
       }));
     });
@@ -75,7 +69,7 @@ describe('Tracking on device', () => {
     });
 
     it('should call transmitter.sendMessage with currentEntry.id, start time as now', () => {
-      expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
         data: {
           id: currentEntry.id,
           start: now,
@@ -84,7 +78,7 @@ describe('Tracking on device', () => {
     });
 
     it('should call transmitter.sendMessage with message.type:RESUME_LAST_ENTRY', () => {
-      expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
         type: MESSAGE_TYPE.RESUME_LAST_ENTRY,
       }));
     });
@@ -103,7 +97,7 @@ describe('Tracking on device', () => {
     });
 
     it('should call transmitter.sendMessage with {id: currentEntry.id, stop: now}', () => {
-      expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
         data: {
           id: currentEntry.id,
           stop: now,
@@ -112,7 +106,7 @@ describe('Tracking on device', () => {
     });
 
     it('should call transmitter.sendMessage with message.type:STOP_CURRENT_ENTRY', () => {
-      expect(sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
         type: MESSAGE_TYPE.STOP_CURRENT_ENTRY,
       }));
     });
