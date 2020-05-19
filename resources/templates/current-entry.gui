@@ -43,7 +43,7 @@
         </section>
 
         <section id="current-entry-controls">
-          <use id="delete-button" href="#combo-button-upper-right" fill="fb-red">
+          <use id="delete-button" href="#combo-button-upper-right">
             <set href="combo-button-icon" attributeName="href"
                  to="images/fitbit_icons/btn_combo_x_p.png"/>
             <set href="combo-button-icon-press" attributeName="href"
@@ -51,11 +51,12 @@
             <set href="combo-button-stroke" attributeName="display" to="inline"/>
           </use>
 
-          <use id="stop-button" href="#combo-button-lower-right" fill="fb-green">
+          <use id="stop-resume-button" href="#combo-button-lower-right">
             <set href="combo-button-icon" attributeName="href"
                  to="images/fitbit_icons/btn_combo_pause_p.png"/>
             <set href="combo-button-icon-press" attributeName="href"
                  to="images/fitbit_icons/btn_combo_pause_press_p.png"/>
+<!--            TODO: REPLACE WITH STYLE-->
             <set href="combo-button-stroke" attributeName="display" to="inline"/>
           </use>
         </section>

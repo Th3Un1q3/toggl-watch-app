@@ -1,3 +1,4 @@
+import './custom-matchers';
 let originalFetch;
 
 beforeEach(() => {

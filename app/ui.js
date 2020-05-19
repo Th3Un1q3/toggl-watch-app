@@ -5,6 +5,13 @@ const LOADER_STATE = Object.freeze({
   DISABLED: 'disabled',
 });
 
+const BUTTON_IMAGE = Object.freeze({
+  PLAY_PRESS: 'images/fitbit_icons/btn_combo_play_press_p.png',
+  PLAY: 'images/fitbit_icons/btn_combo_play_p.png',
+  PAUSE: 'images/fitbit_icons/btn_combo_pause_p.png',
+  PAUSE_PRESS: 'images/fitbit_icons/btn_combo_pause_press_p.png',
+});
+
 const TIMER_SECTION_ACTIVE_CLASS = 'current-entry__time--active';
 
 const _formatTimeSection = (value) => {
@@ -32,6 +39,14 @@ class ElementWrapper {
   }
 
   /**
+   * Defines activate handler for screen and physical button
+   * @param {function} handler
+   */
+  set onactivate(handler) {
+    this._el.onactivate = handler;
+  }
+
+  /**
    * Changes a state of element
    * @param {string} newState
    */
@@ -45,6 +60,14 @@ class ElementWrapper {
    */
   get style() {
     return this._el.style;
+  }
+
+  /**
+   * Returns unwrapped element
+   * @return {HTMLElement}
+   */
+  get native() {
+    return this._el;
   }
 
   /**
@@ -102,6 +125,7 @@ const _el = (id) => {
 
 const enableLoader = () => {
   _el('loader').state = LOADER_STATE.ENABLED;
+  _el('current-entry').hide();
 };
 
 const disableLoader = () => {
@@ -134,13 +158,28 @@ const _assignActiveClass = (difference = new Date(0)) => {
   _el('current-entry-timer-seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
 };
 
-const enableCurrentEntryDeletion = () => {};
+const enableCurrentEntryDeletion = (tracking) => {
+  _el('delete-button').onactivate = () => tracking.deleteCurrentEntry();
+  _el('delete-button').show();
+  _el('delete-button').native.enabled = true;
+};
 
-const enableCurrentEntryPausing = () => {};
+const enableCurrentEntryPausing = (tracking) => {
+  _el('stop-resume-button').onactivate = () => tracking.stopCurrentEntry();
+  _el('stop-resume-button').native.getElementById('combo-button-icon').href = BUTTON_IMAGE.PAUSE;
+  _el('stop-resume-button').native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PAUSE_PRESS;
+};
 
-const enableCurrentEntryResuming = () => {};
+const enableCurrentEntryResuming = (tracking) => {
+  _el('stop-resume-button').onactivate = () => tracking.resumeCurrentEntry();
+  _el('stop-resume-button').native.getElementById('combo-button-icon').href = BUTTON_IMAGE.PLAY;
+  _el('stop-resume-button').native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PLAY_PRESS;
+};
 
-const disableCurrentEntryDeletion = () => {};
+const disableCurrentEntryDeletion = () => {
+  _el('delete-button').hide();
+  _el('delete-button').native.enabled = false;
+};
 
 const showCurrentEntry = (entry = {}) => {
   disableLoader();
@@ -177,4 +216,5 @@ export {
   enableCurrentEntryResuming,
   disableCurrentEntryDeletion,
   LOADER_STATE,
+  BUTTON_IMAGE,
 };

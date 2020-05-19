@@ -13,6 +13,16 @@ text {
     width: 100%;
 }
 
+#stop-resume-button {
+    display: inline;
+    fill: fb-green;
+}
+
+#delete-button {
+    display: none;
+    fill: fb-red;
+}
+
 .current-time {
     width: 100%;
     font-size: 24;

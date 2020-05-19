@@ -33,6 +33,10 @@ class Tracking {
     this._api = api;
     this._transmitter = transmitter;
     this._updateCurrentEntryInterval = null;
+    this.user = null;
+    this.currentEntry = null;
+    this.projects = [];
+
     this.initialize();
   }
 
@@ -41,12 +45,17 @@ class Tracking {
    * @return {Promise<void>}
    */
   async initialize() {
-    this.currentEntry = null;
-    this.projects = [];
+    await this._updateUserData();
+    await this._setupCurrentEntryTrack();
+    debug('tracking initialized');
+  }
 
-    await this._api.fetchUserInfo();
-    this.projects = await this._api.fetchProjects();
-
+  /**
+   * Starts process of current time entry tracking.
+   * @return {Promise<void>}
+   * @private
+   */
+  async _setupCurrentEntryTrack() {
     await this.updateCurrentEntry();
 
     if (this._updateCurrentEntryInterval) {
@@ -56,8 +65,16 @@ class Tracking {
     this._updateCurrentEntryInterval = setInterval(() => {
       this.updateCurrentEntry();
     }, CURRENT_ENTRY_REFRESH_INTERVAL_MS);
+  }
 
-    debug('tracking initialized');
+  /**
+   * Fetch and preserve user specific data for future needs.
+   * @return {Promise<void>}
+   * @private
+   */
+  async _updateUserData() {
+    this.user = await this._api.fetchUserInfo();
+    this.projects = await this._api.fetchProjects();
   }
 
   /**

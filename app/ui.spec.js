@@ -1,11 +1,17 @@
 import faker from 'faker';
 import document from 'document';
 import {
+  BUTTON_IMAGE,
+  disableCurrentEntryDeletion,
+  enableCurrentEntryDeletion, enableCurrentEntryPausing, enableCurrentEntryResuming,
   enableLoader,
   hideConfigurationRequired,
   LOADER_STATE,
   showConfigurationRequired, showCurrentEntry,
 } from './ui';
+import {Tracking} from './tracking';
+
+jest.mock('./tracking');
 
 describe('User Interface module', () => {
   let configurationRequired;
@@ -16,6 +22,9 @@ describe('User Interface module', () => {
   let hours;
   let minutes;
   let seconds;
+  let deleteButton;
+  let tracking;
+  let stopResumeButton;
 
   beforeEach(() => {
     document._reset();
@@ -27,6 +36,9 @@ describe('User Interface module', () => {
     hours = document.getElementById('current-entry-timer-hours');
     minutes = document.getElementById('current-entry-timer-minutes');
     seconds = document.getElementById('current-entry-timer-seconds');
+    deleteButton = document.getElementById('delete-button');
+    stopResumeButton = document.getElementById('stop-resume-button');
+    tracking = new Tracking();
     jest.spyOn(Date, 'now').mockReturnValue(new Date().getTime());
   });
 
@@ -45,9 +57,14 @@ describe('User Interface module', () => {
     expect(hours).toBeTruthy();
     expect(minutes).toBeTruthy();
     expect(seconds).toBeTruthy();
+    expect(deleteButton).toBeTruthy();
+    expect(stopResumeButton).toBeTruthy();
 
-    expect(configurationRequired.style.display).toEqual('none');
-    expect(currentEntry.style.display).toEqual('none');
+
+    expect(stopResumeButton).toBeVisible();
+    expect(deleteButton).not.toBeVisible();
+    expect(configurationRequired).not.toBeVisible();
+    expect(currentEntry).not.toBeVisible();
   });
 
   describe('showCurrentEntry', () => {
@@ -172,39 +189,113 @@ describe('User Interface module', () => {
   });
 
   describe('enableCurrentEntryDeletion', () => {
-    it.todo('should show current entry delete button');
+    beforeEach(() => {
+      enableCurrentEntryDeletion(tracking);
+    });
 
-    it.todo('should call tracking.deleteCurrentEntry when screen button clicked');
+    it('should show and enable current entry delete button', () => {
+      expect(deleteButton).toBeVisible();
+      expect(deleteButton.enabled).toBeTruthy();
+    });
 
-    it.todo('should call tracking.deleteCurrentEntry when physical button clicked');
+    it('should call tracking.deleteCurrentEntry when screen or physical button button clicked', () => {
+      deleteButton.click();
+
+      expect(tracking.deleteCurrentEntry).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('disableCurrentEntryDeletion', () => {
-    it.todo('should hide screen delete button');
+    beforeEach(() => {
+      enableCurrentEntryDeletion(tracking);
+      disableCurrentEntryDeletion();
+    });
 
-    it.todo('should de-attach physical button click handler');
+    it('should hide screen delete button', () => {
+      expect(deleteButton).not.toBeVisible();
+      expect(deleteButton.enabled).toBeFalsy();
+    });
+
+    it('should de-attach physical button click handler', () => {
+      deleteButton.click();
+
+      expect(tracking.deleteCurrentEntry).not.toHaveBeenCalled();
+    });
   });
 
   describe('enableCurrentEntryResuming', () => {
-    it.todo('should set button image to play');
+    beforeEach(() => {
+      showCurrentEntry();
+      enableCurrentEntryResuming(tracking);
+    });
 
-    it.todo('should call tracking.resumeCurrentEntry when screen button clicked');
+    it('should set button image to play', () => {
+      expect(stopResumeButton).toBeVisible();
+      expect(stopResumeButton.getElementById('combo-button-icon-press').href).toEqual(
+          BUTTON_IMAGE.PLAY_PRESS,
+      );
+      expect(stopResumeButton.getElementById('combo-button-icon').href).toEqual(
+          BUTTON_IMAGE.PLAY,
+      );
+    });
 
-    it.todo('should call tracking.resumeCurrentEntry when physical button clicked');
+    it('should call tracking.resumeCurrentEntry when screen or physical button clicked', () => {
+      expect(tracking.resumeCurrentEntry).not.toHaveBeenCalled();
+
+      stopResumeButton.click();
+
+      expect(tracking.resumeCurrentEntry).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('enableCurrentEntryPausing', () => {
-    it.todo('should set pause image to the button');
+    beforeEach(() => {
+      showCurrentEntry();
+      enableCurrentEntryResuming(tracking);
+      enableCurrentEntryPausing(tracking);
+    });
 
-    it.todo('should call tracking.stopCurrentEntry when screen button clicked');
+    it('should set pause image to the button', () => {
+      expect(stopResumeButton).toBeVisible();
+      expect(stopResumeButton.getElementById('combo-button-icon-press').href).toEqual(
+          BUTTON_IMAGE.PAUSE_PRESS,
+      );
+      expect(stopResumeButton.getElementById('combo-button-icon').href).toEqual(
+          BUTTON_IMAGE.PAUSE,
+      );
+    });
 
-    it.todo('should call tracking.stopCurrentEntry when physical button clicked');
+    it('should call tracking.stopCurrentEntry when screen or physical button clicked', () => {
+      expect(tracking.stopCurrentEntry).not.toHaveBeenCalled();
+
+      stopResumeButton.click();
+
+      expect(tracking.stopCurrentEntry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call tracking.resumeCurrentEntry on click', () => {
+      stopResumeButton.click();
+
+      expect(tracking.resumeCurrentEntry).not.toHaveBeenCalled();
+    });
   });
 
   describe('enableLoader', () => {
+    beforeEach(() => {
+      showCurrentEntry();
+    });
+
     it('should make loader state enabled', () => {
       enableLoader();
       expect(loader.state).toEqual(LOADER_STATE.ENABLED);
+    });
+
+    it('should hide current entry', () => {
+      expect(currentEntry).toBeVisible();
+
+      enableLoader();
+
+      expect(currentEntry).not.toBeVisible();
     });
   });
 
@@ -213,7 +304,7 @@ describe('User Interface module', () => {
 
     it('should hide #configuration-instruction', () => {
       hideConfigurationRequired();
-      expect(configurationRequired.style.display).toEqual('none');
+      expect(configurationRequired).not.toBeVisible();
     });
   });
 
@@ -224,11 +315,11 @@ describe('User Interface module', () => {
     });
 
     it('should show #configuration-instruction', () => {
-      expect(configurationRequired.style.display).toEqual('inline');
+      expect(configurationRequired).toBeVisible();
     });
 
     it('should hide current entry', () => {
-      expect(currentEntry.style.display).toEqual('none');
+      expect(currentEntry).not.toBeVisible();
     });
 
     it('should disable #loader', () => {

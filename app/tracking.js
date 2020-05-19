@@ -2,9 +2,10 @@
 import {
   disableCurrentEntryDeletion,
   enableCurrentEntryDeletion,
-  enableCurrentEntryPausing, enableCurrentEntryResuming,
+  enableCurrentEntryPausing, enableCurrentEntryResuming, enableLoader,
   showCurrentEntry,
 } from './ui';
+import {MESSAGE_TYPE} from '../common/message-types';
 
 const TIMER_UPDATE_INTERVAL_MS = 1000;
 
@@ -15,7 +16,8 @@ class Tracking {
   /**
    * Definition of initial values and properties
    */
-  constructor() {
+  constructor({transmitter}) {
+    this._transmitter = transmitter;
     this.currentEntry = null;
     this._currentEntryRefresh = null;
   }
@@ -30,6 +32,48 @@ class Tracking {
     this._configureCurrentEntryControls();
 
     this._launchCurrentEntryRefresh();
+  }
+
+  /**
+   * Gives a command to delete current entry to companion app
+   */
+  deleteCurrentEntry() {
+    this._transmitter.sendMessage({
+      type: MESSAGE_TYPE.DELETE_CURRENT_ENTRY,
+      data: {
+        id: this.currentEntry.id,
+      },
+    });
+    clearInterval(this._currentEntryRefresh);
+    enableLoader();
+  }
+
+  /**
+   * Sends a command to resume current(last) entry
+   */
+  resumeCurrentEntry() {
+    this._transmitter.sendMessage({
+      type: MESSAGE_TYPE.RESUME_LAST_ENTRY,
+      data: {
+        id: this.currentEntry.id,
+        start: Date.now(),
+      },
+    });
+    this.currentEntryUpdated({...this.currentEntry, start: Date.now()});
+  }
+
+  /**
+   * Sends a command to stop current entry
+   */
+  stopCurrentEntry() {
+    this._transmitter.sendMessage({
+      type: MESSAGE_TYPE.STOP_CURRENT_ENTRY,
+      data: {
+        id: this.currentEntry.id,
+        stop: Date.now(),
+      },
+    });
+    this.currentEntryUpdated({...this.currentEntry, start: undefined});
   }
 
   /**
