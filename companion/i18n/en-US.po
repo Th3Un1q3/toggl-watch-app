@@ -1,2 +1,5 @@
 msgid "no_project"
-msgstr "No project"
+msgstr "(no project)"
+
+msgid "no_description"
+msgstr "(no description)"

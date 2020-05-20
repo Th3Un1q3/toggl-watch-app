@@ -8,7 +8,7 @@ const BASE_API_URL = 'https://www.toggl.com/api/v9';
 
 const API_APP_REFERENCE = 'https://github.com/Th3Un1q3/toggl-watch-app';
 
-const excludeReadOnlyFields = ({tag_ids, ...entry}) => entry;
+const excludeReadOnlyFields = ({tag_ids: _tids, ...entry}) => entry;
 
 /**
  * API client which manages communication with backend
