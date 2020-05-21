@@ -5,6 +5,13 @@ const LOADER_STATE = Object.freeze({
   DISABLED: 'disabled',
 });
 
+const BUTTON_IMAGE = Object.freeze({
+  PLAY_PRESS: 'images/fitbit_icons/btn_combo_play_press_p.png',
+  PLAY: 'images/fitbit_icons/btn_combo_play_p.png',
+  PAUSE: 'images/fitbit_icons/btn_combo_pause_p.png',
+  PAUSE_PRESS: 'images/fitbit_icons/btn_combo_pause_press_p.png',
+});
+
 const TIMER_SECTION_ACTIVE_CLASS = 'current-entry__time--active';
 
 const _formatTimeSection = (value) => {
@@ -32,6 +39,14 @@ class ElementWrapper {
   }
 
   /**
+   * Defines activate handler for screen and physical button
+   * @param {function} handler
+   */
+  set onactivate(handler) {
+    this._el.onactivate = handler;
+  }
+
+  /**
    * Changes a state of element
    * @param {string} newState
    */
@@ -45,6 +60,14 @@ class ElementWrapper {
    */
   get style() {
     return this._el.style;
+  }
+
+  /**
+   * Returns unwrapped element
+   * @return {HTMLElement}
+   */
+  get native() {
+    return this._el;
   }
 
   /**
@@ -102,6 +125,7 @@ const _el = (id) => {
 
 const enableLoader = () => {
   _el('loader').state = LOADER_STATE.ENABLED;
+  _el('current-entry').hide();
 };
 
 const disableLoader = () => {
@@ -110,42 +134,65 @@ const disableLoader = () => {
 
 const showConfigurationRequired = () => {
   disableLoader();
-  _el('auth_token_info').show();
-  _el('current_entry').hide();
+  _el('configuration-instruction').show();
+  _el('current-entry').hide();
 };
 
 const hideConfigurationRequired = () => {
-  _el('auth_token_info').hide();
+  _el('configuration-instruction').hide();
 };
 
 const _assignActiveClass = (difference = new Date(0)) => {
-  _el('current_entry_time_hours').removeClass(TIMER_SECTION_ACTIVE_CLASS);
-  _el('current_entry_time_minutes').removeClass(TIMER_SECTION_ACTIVE_CLASS);
-  _el('current_entry_time_seconds').removeClass(TIMER_SECTION_ACTIVE_CLASS);
+  _el('current-entry-timer-hours').removeClass(TIMER_SECTION_ACTIVE_CLASS);
+  _el('current-entry-timer-minutes').removeClass(TIMER_SECTION_ACTIVE_CLASS);
+  _el('current-entry-timer-seconds').removeClass(TIMER_SECTION_ACTIVE_CLASS);
 
   if (difference.getUTCHours()) {
-    return _el('current_entry_time_hours').addClass(TIMER_SECTION_ACTIVE_CLASS);
+    return _el('current-entry-timer-hours').addClass(TIMER_SECTION_ACTIVE_CLASS);
   }
 
   if (difference.getUTCMinutes()) {
-    return _el('current_entry_time_minutes').addClass(TIMER_SECTION_ACTIVE_CLASS);
+    return _el('current-entry-timer-minutes').addClass(TIMER_SECTION_ACTIVE_CLASS);
   }
 
-  _el('current_entry_time_seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
+  _el('current-entry-timer-seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
+};
+
+const enableCurrentEntryDeletion = (tracking) => {
+  _el('delete-button').onactivate = () => tracking.deleteCurrentEntry();
+  _el('delete-button').show();
+  _el('delete-button').native.enabled = true;
+};
+
+const enableCurrentEntryPausing = (tracking) => {
+  _el('stop-resume-button').onactivate = () => tracking.stopCurrentEntry();
+  _el('stop-resume-button').native.getElementById('combo-button-icon').href = BUTTON_IMAGE.PAUSE;
+  _el('stop-resume-button').native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PAUSE_PRESS;
+};
+
+const enableCurrentEntryResuming = (tracking) => {
+  _el('stop-resume-button').onactivate = () => tracking.resumeCurrentEntry();
+  _el('stop-resume-button').native.getElementById('combo-button-icon').href = BUTTON_IMAGE.PLAY;
+  _el('stop-resume-button').native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PLAY_PRESS;
+};
+
+const disableCurrentEntryDeletion = () => {
+  _el('delete-button').hide();
+  _el('delete-button').native.enabled = false;
 };
 
 const showCurrentEntry = (entry = {}) => {
   disableLoader();
-  _el('current_entry').show();
-  _el('current_entry_project').style.fill = entry.color;
-  _el('current_entry_project').text = entry.projectName;
-  _el('current_entry_description').text = entry.desc;
+  _el('current-entry').show();
+  _el('current-entry-project').style.fill = entry.color;
+  _el('current-entry-project').text = entry.projectName;
+  _el('current-entry-description').text = entry.desc;
 
-  if (entry.stop) {
-    _el('current_entry_time_hours').text = '--';
-    _el('current_entry_time_minutes').text = '--';
-    _el('current_entry_time_seconds').text = '--';
-    _el('current_entry_time_seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
+  if (!entry.start) {
+    _el('current-entry-timer-hours').text = '--';
+    _el('current-entry-timer-minutes').text = '--';
+    _el('current-entry-timer-seconds').text = '--';
+    _el('current-entry-timer-seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
     _assignActiveClass();
     return;
   }
@@ -154,9 +201,20 @@ const showCurrentEntry = (entry = {}) => {
 
   _assignActiveClass(difference);
 
-  _el('current_entry_time_hours').text = _formatTimeSection(difference.getUTCHours());
-  _el('current_entry_time_minutes').text = _formatTimeSection(difference.getUTCMinutes());
-  _el('current_entry_time_seconds').text = _formatTimeSection(difference.getUTCSeconds());
+  _el('current-entry-timer-hours').text = _formatTimeSection(difference.getUTCHours());
+  _el('current-entry-timer-minutes').text = _formatTimeSection(difference.getUTCMinutes());
+  _el('current-entry-timer-seconds').text = _formatTimeSection(difference.getUTCSeconds());
 };
 
-export {showConfigurationRequired, hideConfigurationRequired, enableLoader, showCurrentEntry, LOADER_STATE};
+export {
+  showConfigurationRequired,
+  hideConfigurationRequired,
+  enableLoader,
+  showCurrentEntry,
+  enableCurrentEntryPausing,
+  enableCurrentEntryDeletion,
+  enableCurrentEntryResuming,
+  disableCurrentEntryDeletion,
+  LOADER_STATE,
+  BUTTON_IMAGE,
+};

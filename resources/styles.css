@@ -7,13 +7,23 @@ text {
 
 /* reset end */
 
-#current_entry {
+#current-entry {
     display: none;
     height: 100%;
     width: 100%;
 }
 
-#current_time {
+#stop-resume-button {
+    display: inline;
+    fill: fb-green;
+}
+
+#delete-button {
+    display: none;
+    fill: fb-red;
+}
+
+.current-time {
     width: 100%;
     font-size: 24;
     y: 12+24;
@@ -21,7 +31,7 @@ text {
     text-anchor: middle;
 }
 
-#current_entry_project {
+#current-entry-project {
     x: 6;
     y: 50%-57;
     width: 100%;
@@ -30,7 +40,7 @@ text {
     font-size: 35;
 }
 
-#current_entry_description {
+#current-entry-description {
     x: 6;
     y: 50%-17;
     width: 100%;
@@ -104,7 +114,7 @@ text {
     fill: fb-white;
 }
 
-#auth_token_info {
+#configuration-instruction {
     fill: fb-black;
     width: 100%;
     height: 100%;

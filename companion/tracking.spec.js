@@ -1,13 +1,13 @@
 import _ from 'lodash';
-
+import faker from 'faker';
 import {
   CURRENT_ENTRY_REFRESH_INTERVAL_MS,
-  NO_PROJECT_COLOR,
+  NO_PROJECT_COLOR, NO_PROJECT_INFO,
   OPTIMAL_TEXTS_LENGTH,
   Tracking,
 } from './tracking';
 import {API} from './api';
-import {Transmitter, sendMessage} from '../common/transmitter';
+import {Transmitter} from '../common/transmitter';
 import flushPromises from 'flush-promises';
 import {MESSAGE_TYPE} from '../common/message-types';
 import {timeEntryBody} from '../utils/factories/time-entries';
@@ -26,6 +26,176 @@ describe('Tracking', () => {
     tracking = new Tracking({api, transmitter: new Transmitter()});
     await flushPromises();
     jest.clearAllMocks();
+  });
+
+  describe('commands handling', () => {
+    let currentEntry;
+
+    beforeEach(async () => {
+      currentEntry = timeEntryBody({stop: faker.date.past()});
+      api.fetchProjects.mockResolvedValue([]);
+      api.fetchCurrentEntry.mockResolvedValue(currentEntry);
+      await tracking.initialize();
+      jest.spyOn(tracking, 'updateCurrentEntry');
+      await flushPromises();
+    });
+
+    test('api is not called initially', () => {
+      expect(api.updateTimeEntry).not.toHaveBeenCalled();
+      expect(api.createTimeEntry).not.toHaveBeenCalled();
+      expect(api.deleteTimeEntry).not.toHaveBeenCalled();
+      expect(tracking.updateCurrentEntry).not.toHaveBeenCalled();
+    });
+
+    describe('stop current entry', () => {
+      let stop;
+      beforeEach(() => {
+        stop = Date.now();
+
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.STOP_CURRENT_ENTRY, {
+          id: currentEntry.id,
+          stop,
+        });
+      });
+
+      it('should call api.updateTimeEntry with stop property from message', () => {
+        expect(api.updateTimeEntry).toHaveBeenCalledTimes(1);
+
+        expect(api.updateTimeEntry).toHaveBeenLastCalledWith(expect.objectContaining({
+          id: currentEntry.id,
+          stop: new Date(stop).toISOString(),
+        }));
+      });
+
+      it('should make tracking.updateCurrentEntry', () => {
+        expect(tracking.updateCurrentEntry).toHaveBeenCalledTimes(1);
+      });
+
+      describe('when id from message does not match current', () => {
+        beforeEach(async () => {
+          api.updateTimeEntry.mockClear();
+
+          Transmitter.emitMessageReceived(MESSAGE_TYPE.STOP_CURRENT_ENTRY, {
+            id: faker.random.number(),
+            stop,
+          });
+
+          await flushPromises();
+        });
+
+        it('should not call api.updateTimeEntry', () => {
+          expect(api.updateTimeEntry).not.toHaveBeenCalled();
+        });
+      });
+    });
+
+    describe('resume last entry', () => {
+      let start;
+
+      beforeEach(() => {
+        start = Date.now();
+
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.RESUME_LAST_ENTRY, {
+          id: currentEntry.id,
+          start,
+        });
+      });
+
+      it('should call api.createTimeEntry with entry data and start from message', () => {
+        expect(api.createTimeEntry).toHaveBeenCalledTimes(1);
+
+        expect(api.createTimeEntry).toHaveBeenLastCalledWith(expect.objectContaining({
+          id: currentEntry.id,
+          start: new Date(start).toISOString(),
+          stop: null,
+        }));
+      });
+
+      it('should make tracking.updateCurrentEntry', () => {
+        expect(tracking.updateCurrentEntry).toHaveBeenCalledTimes(1);
+      });
+
+      describe('when there is no current entry', () => {
+        let wid;
+
+        beforeEach(async () => {
+          wid = faker.random.number();
+
+          api.createTimeEntry.mockClear();
+          api.fetchUserInfo.mockResolvedValue({default_workspace_id: wid});
+          api.fetchCurrentEntry.mockResolvedValue(null);
+          await tracking.initialize();
+          await flushPromises();
+
+          Transmitter.emitMessageReceived(MESSAGE_TYPE.RESUME_LAST_ENTRY, {
+            start,
+          });
+
+          await flushPromises();
+        });
+
+        it('should create new with "wid"(required property) taken from user', () => {
+          expect(api.createTimeEntry).toHaveBeenLastCalledWith(expect.objectContaining({
+            start: new Date(start).toISOString(),
+            stop: null,
+            wid,
+          }));
+        });
+      });
+
+      describe('when id from message does not match current', () => {
+        beforeEach(async () => {
+          api.createTimeEntry.mockClear();
+
+          Transmitter.emitMessageReceived(MESSAGE_TYPE.RESUME_LAST_ENTRY, {
+            id: faker.random.number(),
+            start,
+          });
+
+          await flushPromises();
+        });
+
+        it('should not call api.createTimeEntry', () => {
+          expect(api.createTimeEntry).not.toHaveBeenCalled();
+        });
+      });
+    });
+
+    describe('delete current entry', () => {
+      beforeEach(() => {
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.DELETE_CURRENT_ENTRY, {
+          id: currentEntry.id,
+        });
+      });
+
+      it('should call api.deleteTimeEntry with entry id', () => {
+        expect(api.deleteTimeEntry).toHaveBeenCalledTimes(1);
+
+        expect(api.deleteTimeEntry).toHaveBeenLastCalledWith(expect.objectContaining({
+          id: currentEntry.id,
+        }));
+      });
+
+      it('should make tracking.updateCurrentEntry', () => {
+        expect(tracking.updateCurrentEntry).toHaveBeenCalledTimes(1);
+      });
+
+      describe('when id from message does not match current', () => {
+        beforeEach(async () => {
+          api.deleteTimeEntry.mockClear();
+
+          Transmitter.emitMessageReceived(MESSAGE_TYPE.DELETE_CURRENT_ENTRY, {
+            id: faker.random.number(),
+          });
+
+          await flushPromises();
+        });
+
+        it('should not call api.deleteTimeEntry', () => {
+          expect(api.deleteTimeEntry).not.toHaveBeenCalled();
+        });
+      });
+    });
   });
 
   describe('.initialize', () => {
@@ -73,7 +243,7 @@ describe('Tracking', () => {
       it('should transmit current entry basic info', async () => {
         await tracking.initialize();
 
-        expect(sendMessage).toHaveBeenCalledTimes(1);
+        expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
         const expectedData = expect.objectContaining({
           id: currentEntry.id,
           desc: currentEntry.description,
@@ -81,7 +251,7 @@ describe('Tracking', () => {
           billable: currentEntry.billable,
         });
 
-        expect(sendMessage).toHaveBeenCalledWith({
+        expect(Transmitter.instanceSendMessage).toHaveBeenCalledWith({
           type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
           data: expectedData,
         });
@@ -90,7 +260,7 @@ describe('Tracking', () => {
       it('should transmit project name and color', async () => {
         await tracking.initialize();
 
-        expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({
+        expect(Transmitter.instanceSendMessage).toHaveBeenCalledWith(expect.objectContaining({
           data: expect.objectContaining({
             color: currentEntryProject.color,
             projectName: currentEntryProject.name,
@@ -98,17 +268,17 @@ describe('Tracking', () => {
         }));
       });
 
-      it('should send entries updates', async () => {
-        sendMessage.mockClear();
+      it('should send entries updates in intervals', async () => {
+        Transmitter.instanceSendMessage.mockClear();
         await tracking.initialize();
 
         jest.advanceTimersByTime(CURRENT_ENTRY_REFRESH_INTERVAL_MS*2);
 
         await flushPromises();
 
-        expect(sendMessage).toHaveBeenCalledTimes(1);
+        expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
 
-        currentEntry = _.without(timeEntryBody());
+        currentEntry = timeEntryBody({description: faker.lorem.word()});
 
         api.fetchCurrentEntry.mockResolvedValueOnce(currentEntry);
 
@@ -116,7 +286,7 @@ describe('Tracking', () => {
 
         await flushPromises();
 
-        expect(sendMessage).toHaveBeenCalledTimes(2);
+        expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(2);
 
         const expectedData = expect.objectContaining({
           id: currentEntry.id,
@@ -125,7 +295,7 @@ describe('Tracking', () => {
           billable: currentEntry.billable,
         });
 
-        expect(sendMessage).toHaveBeenLastCalledWith({
+        expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
           type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
           data: expectedData,
         });
@@ -133,7 +303,7 @@ describe('Tracking', () => {
 
       describe('when project is not present', () => {
         beforeEach(() => {
-          currentEntry = _.without(timeEntryBody(), 'pid');
+          currentEntry = _.without(timeEntryBody(), 'pid', 'description');
 
           api.fetchCurrentEntry.mockResolvedValue(currentEntry);
         });
@@ -141,8 +311,9 @@ describe('Tracking', () => {
         it('should set project name to "no project" and color to gray', async () => {
           await tracking.initialize();
 
-          expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({
+          expect(Transmitter.instanceSendMessage).toHaveBeenCalledWith(expect.objectContaining({
             data: expect.objectContaining({
+              desc: gettext('no_description'),
               color: NO_PROJECT_COLOR,
               projectName: gettext('no_project'),
             }),
@@ -159,13 +330,15 @@ describe('Tracking', () => {
           it('should send the first of them', async () => {
             await tracking.initialize();
 
-            expect(sendMessage).toHaveBeenCalledWith({
+            expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+              data: expect.not.objectContaining({start: expect.anything()}),
+            }));
+
+            expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
               type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
               data: expect.objectContaining({
                 id: lastTimeEntry.id,
                 desc: expect.stringContaining(lastTimeEntry.description.slice(0, 50)),
-                start: Date.parse(lastTimeEntry.start),
-                stop: Date.parse(lastTimeEntry.stop),
                 billable: lastTimeEntry.billable,
               }),
             });
@@ -177,13 +350,17 @@ describe('Tracking', () => {
             api.fetchTimeEntries.mockResolvedValue([]);
           });
 
-          it('should send update with null', async () => {
+          it('should send update with default current entry', async () => {
             await tracking.initialize();
 
-            expect(sendMessage).toHaveBeenCalledTimes(1);
-            expect(sendMessage).toHaveBeenCalledWith({
+            expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
+            expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
               type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
-              data: null,
+              data: {
+                desc: gettext('no_description'),
+                billable: false,
+                ...NO_PROJECT_INFO,
+              },
             });
           });
         });

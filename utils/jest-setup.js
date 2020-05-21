@@ -1,3 +1,4 @@
+import './custom-matchers';
 let originalFetch;
 
 beforeEach(() => {
@@ -7,6 +8,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  if (Date.now.mock) {
+    Date.now.mockRestore();
+  }
   global.fetch = originalFetch;
   jest.clearAllMocks();
   jest.clearAllTimers();

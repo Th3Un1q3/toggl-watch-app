@@ -2,13 +2,28 @@ const {COMPANION_QUEUE_SIZE, DEVICE_QUEUE_SIZE} = jest.requireActual('../transmi
 
 const sendMessage = jest.fn();
 
-const Transmitter = jest.fn().mockReturnValue({
-  sendMessage,
+let handlers = {};
+
+const onMessage = jest.fn().mockImplementation((type, handler) => {
+  handlers[type] = handler;
 });
+
+const {Transmitter} = jest.genMockFromModule('../transmitter');
+
+Transmitter.mockImplementation(() => {
+  handlers = {};
+
+  return {
+    sendMessage,
+    onMessage,
+  };
+});
+
+Transmitter.instanceSendMessage = sendMessage;
+Transmitter.emitMessageReceived = (type, payload) => handlers[type](payload);
 
 export {
   Transmitter,
-  sendMessage,
   COMPANION_QUEUE_SIZE,
   DEVICE_QUEUE_SIZE,
 };

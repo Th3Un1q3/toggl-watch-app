@@ -1,19 +1,25 @@
 import {peerSocket, _resetPeerSocket} from 'messaging';
-import { initIncomingMessagesHandler, TIMER_UPDATE_INTERVAL_MS } from './transmission';
-import {hideConfigurationRequired, showConfigurationRequired, showCurrentEntry} from './ui';
+import {initIncomingMessagesHandler} from './transmission';
+import {hideConfigurationRequired, showConfigurationRequired} from './ui';
 import {MESSAGE_TYPE} from '../common/message-types';
 import {timeEntryBody} from '../utils/factories/time-entries';
+import {Transmitter} from '../common/transmitter';
+import {Tracking} from './tracking';
 
 jest.mock('./ui');
+jest.mock('./tracking');
 
 describe('Transmission module', () => {
+  let tracking;
+
   beforeEach(() => {
     _resetPeerSocket();
+    tracking = new Tracking();
   });
 
   describe('initIncomingMessagesHandler', () => {
     beforeEach(() => {
-      initIncomingMessagesHandler();
+      initIncomingMessagesHandler({transmitter: new Transmitter(), tracking});
     });
 
     describe('when message with type CURRENT_ENTRY_UPDATE received', () => {
@@ -32,30 +38,13 @@ describe('Transmission module', () => {
         currentEntry = timeEntryBody();
       });
 
-      it('should call ui.showCurrentEntry with entry params', () => {
-        expect(showCurrentEntry).not.toHaveBeenCalled();
+      it('should call tracking.currentEntryUpdated with entry params', () => {
+        expect(tracking.currentEntryUpdated).not.toHaveBeenCalled();
 
         triggerMessageReceived(currentEntry);
 
-        expect(showCurrentEntry).toHaveBeenCalledTimes(1);
-        expect(showCurrentEntry).toHaveBeenLastCalledWith(currentEntry);
-      });
-
-      it('should call show current entry every second since then', () => {
-        triggerMessageReceived(currentEntry);
-        jest.advanceTimersByTime(TIMER_UPDATE_INTERVAL_MS);
-
-        expect(showCurrentEntry).toHaveBeenCalledTimes(2);
-        expect(showCurrentEntry).toHaveBeenLastCalledWith(currentEntry);
-
-        showCurrentEntry.mockClear();
-
-        const newEntry = timeEntryBody();
-        triggerMessageReceived(newEntry);
-
-        jest.advanceTimersByTime(TIMER_UPDATE_INTERVAL_MS*5);
-        expect(showCurrentEntry).toHaveBeenLastCalledWith(newEntry);
-        expect(showCurrentEntry).not.toHaveBeenCalledWith(currentEntry);
+        expect(tracking.currentEntryUpdated).toHaveBeenCalledTimes(1);
+        expect(tracking.currentEntryUpdated).toHaveBeenLastCalledWith(currentEntry);
       });
     });
 

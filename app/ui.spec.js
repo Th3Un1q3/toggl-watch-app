@@ -1,11 +1,17 @@
 import faker from 'faker';
 import document from 'document';
 import {
+  BUTTON_IMAGE,
+  disableCurrentEntryDeletion,
+  enableCurrentEntryDeletion, enableCurrentEntryPausing, enableCurrentEntryResuming,
   enableLoader,
   hideConfigurationRequired,
   LOADER_STATE,
   showConfigurationRequired, showCurrentEntry,
 } from './ui';
+import {Tracking} from './tracking';
+
+jest.mock('./tracking');
 
 describe('User Interface module', () => {
   let configurationRequired;
@@ -16,24 +22,24 @@ describe('User Interface module', () => {
   let hours;
   let minutes;
   let seconds;
+  let deleteButton;
+  let tracking;
+  let stopResumeButton;
 
   beforeEach(() => {
     document._reset();
-    configurationRequired = document.getElementById('auth_token_info');
+    configurationRequired = document.getElementById('configuration-instruction');
     loader = document.getElementById('loader');
-    currentEntry = document.getElementById('current_entry');
-    project = document.getElementById('current_entry_project');
-    description = document.getElementById('current_entry_description');
-    hours = document.getElementById('current_entry_time_hours');
-    minutes = document.getElementById('current_entry_time_minutes');
-    seconds = document.getElementById('current_entry_time_seconds');
+    currentEntry = document.getElementById('current-entry');
+    project = document.getElementById('current-entry-project');
+    description = document.getElementById('current-entry-description');
+    hours = document.getElementById('current-entry-timer-hours');
+    minutes = document.getElementById('current-entry-timer-minutes');
+    seconds = document.getElementById('current-entry-timer-seconds');
+    deleteButton = document.getElementById('delete-button');
+    stopResumeButton = document.getElementById('stop-resume-button');
+    tracking = new Tracking();
     jest.spyOn(Date, 'now').mockReturnValue(new Date().getTime());
-  });
-
-  afterEach(() => {
-    if (Date.now.mock) {
-      Date.now.mockRestore();
-    }
   });
 
   test('ui elements present and have correct defaults', () => {
@@ -45,9 +51,14 @@ describe('User Interface module', () => {
     expect(hours).toBeTruthy();
     expect(minutes).toBeTruthy();
     expect(seconds).toBeTruthy();
+    expect(deleteButton).toBeTruthy();
+    expect(stopResumeButton).toBeTruthy();
 
-    expect(configurationRequired.style.display).toEqual('none');
-    expect(currentEntry.style.display).toEqual('none');
+
+    expect(stopResumeButton).toBeVisible();
+    expect(deleteButton).not.toBeVisible();
+    expect(configurationRequired).not.toBeVisible();
+    expect(currentEntry).not.toBeVisible();
   });
 
   describe('showCurrentEntry', () => {
@@ -63,8 +74,6 @@ describe('User Interface module', () => {
         currentEntryBody = {
           id: faker.random.number(),
           desc: faker.lorem.sentence(),
-          start,
-          stop: start + faker.random.number(),
           billable: true,
           color: '#a0a0a0',
           projectName: faker.hacker.adjective(),
@@ -77,7 +86,7 @@ describe('User Interface module', () => {
         expect(loader.state).toEqual(LOADER_STATE.DISABLED);
       });
 
-      it('should make #current_entry visible', () => {
+      it('should make #current-entry visible', () => {
         expect(currentEntry.style.display).toEqual('inline');
       });
 
@@ -115,10 +124,12 @@ describe('User Interface module', () => {
 
             Date.now.mockReturnValue(start + extraSecondsInMS + extraMinutesInMS);
 
-            showCurrentEntry({
+            currentEntryBody = {
               ...currentEntryBody,
-              stop: null,
-            });
+              start,
+            };
+
+            showCurrentEntry(currentEntryBody);
           });
 
           it('should set corresponding timer section texts', () => {
@@ -141,10 +152,7 @@ describe('User Interface module', () => {
 
               Date.now.mockReturnValue(start + extraSecondsInMS + extraMinutesInMS + extraHoursInMS);
 
-              showCurrentEntry({
-                ...currentEntryBody,
-                stop: null,
-              });
+              showCurrentEntry(currentEntryBody);
             });
 
             it('should mark hours section as active', () => {
@@ -160,10 +168,7 @@ describe('User Interface module', () => {
 
               Date.now.mockReturnValue(start + extraSecondsInMS);
 
-              showCurrentEntry({
-                ...currentEntryBody,
-                stop: null,
-              });
+              showCurrentEntry(currentEntryBody);
             });
 
             it('should mark seconds section as active', () => {
@@ -177,19 +182,123 @@ describe('User Interface module', () => {
     });
   });
 
+  describe('enableCurrentEntryDeletion', () => {
+    beforeEach(() => {
+      enableCurrentEntryDeletion(tracking);
+    });
+
+    it('should show and enable current entry delete button', () => {
+      expect(deleteButton).toBeVisible();
+      expect(deleteButton.enabled).toBeTruthy();
+    });
+
+    it('should call tracking.deleteCurrentEntry when screen or physical button button clicked', () => {
+      deleteButton.click();
+
+      expect(tracking.deleteCurrentEntry).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('disableCurrentEntryDeletion', () => {
+    beforeEach(() => {
+      enableCurrentEntryDeletion(tracking);
+      disableCurrentEntryDeletion();
+    });
+
+    it('should hide screen delete button', () => {
+      expect(deleteButton).not.toBeVisible();
+      expect(deleteButton.enabled).toBeFalsy();
+    });
+
+    it('should de-attach physical button click handler', () => {
+      deleteButton.click();
+
+      expect(tracking.deleteCurrentEntry).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('enableCurrentEntryResuming', () => {
+    beforeEach(() => {
+      showCurrentEntry();
+      enableCurrentEntryResuming(tracking);
+    });
+
+    it('should set button image to play', () => {
+      expect(stopResumeButton).toBeVisible();
+      expect(stopResumeButton.getElementById('combo-button-icon-press').href).toEqual(
+          BUTTON_IMAGE.PLAY_PRESS,
+      );
+      expect(stopResumeButton.getElementById('combo-button-icon').href).toEqual(
+          BUTTON_IMAGE.PLAY,
+      );
+    });
+
+    it('should call tracking.resumeCurrentEntry when screen or physical button clicked', () => {
+      expect(tracking.resumeCurrentEntry).not.toHaveBeenCalled();
+
+      stopResumeButton.click();
+
+      expect(tracking.resumeCurrentEntry).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('enableCurrentEntryPausing', () => {
+    beforeEach(() => {
+      showCurrentEntry();
+      enableCurrentEntryResuming(tracking);
+      enableCurrentEntryPausing(tracking);
+    });
+
+    it('should set pause image to the button', () => {
+      expect(stopResumeButton).toBeVisible();
+      expect(stopResumeButton.getElementById('combo-button-icon-press').href).toEqual(
+          BUTTON_IMAGE.PAUSE_PRESS,
+      );
+      expect(stopResumeButton.getElementById('combo-button-icon').href).toEqual(
+          BUTTON_IMAGE.PAUSE,
+      );
+    });
+
+    it('should call tracking.stopCurrentEntry when screen or physical button clicked', () => {
+      expect(tracking.stopCurrentEntry).not.toHaveBeenCalled();
+
+      stopResumeButton.click();
+
+      expect(tracking.stopCurrentEntry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call tracking.resumeCurrentEntry on click', () => {
+      stopResumeButton.click();
+
+      expect(tracking.resumeCurrentEntry).not.toHaveBeenCalled();
+    });
+  });
+
   describe('enableLoader', () => {
+    beforeEach(() => {
+      showCurrentEntry();
+    });
+
     it('should make loader state enabled', () => {
       enableLoader();
       expect(loader.state).toEqual(LOADER_STATE.ENABLED);
+    });
+
+    it('should hide current entry', () => {
+      expect(currentEntry).toBeVisible();
+
+      enableLoader();
+
+      expect(currentEntry).not.toBeVisible();
     });
   });
 
   describe('hideConfigurationRequired', () => {
     beforeEach(showConfigurationRequired);
 
-    it('should hide #auth_token_info', () => {
+    it('should hide #configuration-instruction', () => {
       hideConfigurationRequired();
-      expect(configurationRequired.style.display).toEqual('none');
+      expect(configurationRequired).not.toBeVisible();
     });
   });
 
@@ -199,12 +308,12 @@ describe('User Interface module', () => {
       showConfigurationRequired();
     });
 
-    it('should show #auth_token_info', () => {
-      expect(configurationRequired.style.display).toEqual('inline');
+    it('should show #configuration-instruction', () => {
+      expect(configurationRequired).toBeVisible();
     });
 
     it('should hide current entry', () => {
-      expect(currentEntry.style.display).toEqual('none');
+      expect(currentEntry).not.toBeVisible();
     });
 
     it('should disable #loader', () => {

@@ -3,7 +3,7 @@ import {settingsStorage, _resetSettings} from 'settings';
 import {MESSAGE_TYPE} from '../common/message-types';
 import {bootstrap} from './bootstrap';
 import {API_TOKEN_SETTINGS_STORAGE_KEY} from '../common/constants';
-import {Transmitter, sendMessage, COMPANION_QUEUE_SIZE} from '../common/transmitter';
+import {Transmitter, COMPANION_QUEUE_SIZE} from '../common/transmitter';
 import {API} from './api';
 import {Tracking} from './tracking';
 
@@ -41,7 +41,7 @@ describe('Companion app bootstrap', () => {
       handler();
 
       expect(settingsStorage.getItem(API_TOKEN_SETTINGS_STORAGE_KEY)).not.toBeDefined();
-      expect(sendMessage).toHaveBeenLastCalledWith({
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
         type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
         data: {configured: false},
       });
@@ -80,7 +80,7 @@ describe('Companion app bootstrap', () => {
 
       settingsStorage.setItem(API_TOKEN_SETTINGS_STORAGE_KEY, 'token');
 
-      sendMessage.mockClear();
+      Transmitter.instanceSendMessage.mockClear();
     });
 
     it('should subscribe on updates', () => {
@@ -104,12 +104,12 @@ describe('Companion app bootstrap', () => {
     });
 
     it('should send updates of api token statuses', () => {
-      expect(sendMessage).not.toHaveBeenCalled();
+      expect(Transmitter.instanceSendMessage).not.toHaveBeenCalled();
 
       settingsStorage._onchangeHandler();
 
-      expect(sendMessage).toHaveBeenCalledTimes(1);
-      expect(sendMessage).toHaveBeenLastCalledWith({
+      expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
         type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
         data: {configured: true},
       });
@@ -118,12 +118,12 @@ describe('Companion app bootstrap', () => {
 
   describe('when api token is not defined', () => {
     it('should send message to show instructions on device', () => {
-      expect(sendMessage).not.toHaveBeenCalled();
+      expect(Transmitter.instanceSendMessage).not.toHaveBeenCalled();
 
       bootstrap();
 
-      expect(sendMessage).toHaveBeenCalledTimes(1);
-      expect(sendMessage).toHaveBeenLastCalledWith({
+      expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
         type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
         data: {configured: false},
       });
@@ -143,8 +143,8 @@ describe('Companion app bootstrap', () => {
     });
 
     it('send api token present', () => {
-      expect(sendMessage).toHaveBeenCalledTimes(1);
-      expect(sendMessage).toHaveBeenLastCalledWith({
+      expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
         type: MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE,
         data: {configured: true},
       });

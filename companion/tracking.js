@@ -1,6 +1,3 @@
-/**
- * The module is responsible for time tracking
- */
 import {MESSAGE_TYPE} from '../common/message-types';
 import {gettext} from 'i18n';
 import {debug} from '../common/debug';
@@ -11,7 +8,18 @@ const CURRENT_ENTRY_REFRESH_INTERVAL_MS = 15000;
 
 const OPTIMAL_TEXTS_LENGTH = 64;
 
-const entryUniquenessId = ({id, start, stop, pid, description}) => [id, start, stop, pid, description].join(':');
+const NO_PROJECT_INFO = {
+  color: NO_PROJECT_COLOR,
+  projectName: gettext('no_project'),
+};
+
+const EMPTY_TIME_ENTRY = {
+  desc: gettext('no_description'),
+  billable: false,
+  ...NO_PROJECT_INFO,
+};
+
+const entryUniquenessId = ({id, start, stop, pid, description} = {}) => [id, start, stop, pid, description].join(':');
 
 const optimiseStringForDisplaying = (input) => {
   if (input && input.length > OPTIMAL_TEXTS_LENGTH) {
@@ -21,7 +29,7 @@ const optimiseStringForDisplaying = (input) => {
 };
 
 /**
- *
+ * The module is responsible for time tracking process
  */
 class Tracking {
   /**
@@ -33,6 +41,10 @@ class Tracking {
     this._api = api;
     this._transmitter = transmitter;
     this._updateCurrentEntryInterval = null;
+    this.user = null;
+    this.currentEntry = null;
+    this.projects = [];
+    this._attachCommandsProcessing();
     this.initialize();
   }
 
@@ -41,22 +53,8 @@ class Tracking {
    * @return {Promise<void>}
    */
   async initialize() {
-    this.currentEntry = null;
-    this.projects = [];
-
-    await this._api.fetchUserInfo();
-    this.projects = await this._api.fetchProjects();
-
-    await this.updateCurrentEntry();
-
-    if (this._updateCurrentEntryInterval) {
-      clearInterval(this._updateCurrentEntryInterval);
-    }
-
-    this._updateCurrentEntryInterval = setInterval(() => {
-      this.updateCurrentEntry();
-    }, CURRENT_ENTRY_REFRESH_INTERVAL_MS);
-
+    await this._updateUserData();
+    await this._setupCurrentEntryTracking();
     debug('tracking initialized');
   }
 
@@ -80,6 +78,79 @@ class Tracking {
   }
 
   /**
+   * Defines how to process commands received from the device
+   * @private
+   */
+  _attachCommandsProcessing() {
+    this._transmitter.onMessage(MESSAGE_TYPE.STOP_CURRENT_ENTRY, async ({stop, id}) => {
+      this.currentEntry = {
+        ...this.currentEntry,
+        stop: new Date(stop).toISOString(),
+      };
+
+      if (id === this.currentEntryId) {
+        await this._api.updateTimeEntry(this.currentEntry);
+      }
+
+      await this._setupCurrentEntryTracking();
+    });
+
+    this._transmitter.onMessage(MESSAGE_TYPE.RESUME_LAST_ENTRY, async ({start, id}) => {
+      this.currentEntry = {
+        wid: this.user && this.user.default_workspace_id,
+        ...this.currentEntry,
+        stop: null,
+        start: new Date(start).toISOString(),
+      };
+
+      if (id === this.currentEntryId) {
+        await this._api.createTimeEntry(this.currentEntry);
+      }
+
+      await this._setupCurrentEntryTracking();
+    });
+
+    this._transmitter.onMessage(MESSAGE_TYPE.DELETE_CURRENT_ENTRY, async ({id}) => {
+      if (id === this.currentEntryId) {
+        await this._api.deleteTimeEntry(this.currentEntry);
+      }
+      this.currentEntry = null;
+      await this._setupCurrentEntryTracking();
+    });
+  }
+
+  get currentEntryId() {
+    return this.currentEntry && this.currentEntry.id;
+  }
+
+  /**
+   * Starts process of current time entry tracking.
+   * @return {Promise<void>}
+   * @private
+   */
+  async _setupCurrentEntryTracking() {
+    if (this._updateCurrentEntryInterval) {
+      clearInterval(this._updateCurrentEntryInterval);
+    }
+
+    await this.updateCurrentEntry();
+
+    this._updateCurrentEntryInterval = setInterval(() => {
+      this.updateCurrentEntry();
+    }, CURRENT_ENTRY_REFRESH_INTERVAL_MS);
+  }
+
+  /**
+   * Fetch and preserve user specific data for future needs.
+   * @return {Promise<void>}
+   * @private
+   */
+  async _updateUserData() {
+    this.user = await this._api.fetchUserInfo();
+    this.projects = await this._api.fetchProjects();
+  }
+
+  /**
    * Returns the most recent time entry either currently active or last active one.
    * @return {Promise<Object|null|undefined>}
    * @private
@@ -100,38 +171,55 @@ class Tracking {
 
   /**
    * Getter for current entry info to be transferred to the device
-   * @return {{id: string}|null}
+   * @return {{id: *, billable: boolean, desc: string}}
    * @private
    */
   get _currentEntryMessage() {
     if (!this.currentEntry) {
-      return null;
+      return EMPTY_TIME_ENTRY;
     }
 
-    const project = this.projects.find(({id}) => id === this.currentEntry.pid);
+    const start = this._currentEntryStartTimestamp;
 
-    const noProject = {
-      color: NO_PROJECT_COLOR,
-      projectName: gettext('no_project'),
-    };
-
-    const projectInfo = project && {
-      color: project.color,
-      projectName: optimiseStringForDisplaying(project.name),
-    } || noProject;
-
-    const stop = this.currentEntry.stop && Date.parse(this.currentEntry.stop);
-
-    const start = Date.parse(this.currentEntry.start);
+    const desc = optimiseStringForDisplaying(this.currentEntry.description) || gettext('no_description');
 
     return {
-      id: this.currentEntry.id,
-      desc: optimiseStringForDisplaying(this.currentEntry.description),
+      id: this.currentEntryId,
       billable: this.currentEntry.billable,
-      start,
-      ...(stop ? {stop} : {}),
-      ...projectInfo,
+      desc,
+      ...(start ? {start} : {}),
+      ...this._currentEntryMessageProjectInfo,
     };
+  }
+
+  /**
+   * Returns time in milliseconds from entry start in case if entry still running
+   * @return {boolean|number}
+   * @private
+   */
+  get _currentEntryStartTimestamp() {
+    return !this.currentEntry.stop && Date.parse(this.currentEntry.start);
+  }
+
+  /**
+   * Returns information about the project needs to be transported to the device
+   * @return {*|{color: *, projectName: string}|{color: string, projectName: *}}
+   * @private
+   */
+  get _currentEntryMessageProjectInfo() {
+    return this._currentEntryProject && {
+      color: this._currentEntryProject.color,
+      projectName: optimiseStringForDisplaying(this._currentEntryProject.name),
+    } || NO_PROJECT_INFO;
+  }
+
+  /**
+   * returns project having id equals to pid of current entry
+   * @return {*}
+   * @private
+   */
+  get _currentEntryProject() {
+    return this.projects.find(({id}) => id === this.currentEntry.pid);
   }
 }
 
@@ -139,5 +227,6 @@ export {
   Tracking,
   CURRENT_ENTRY_REFRESH_INTERVAL_MS,
   NO_PROJECT_COLOR,
+  NO_PROJECT_INFO,
   OPTIMAL_TEXTS_LENGTH,
 };

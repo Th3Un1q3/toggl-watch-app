@@ -1,11 +1,16 @@
+import _ from 'lodash';
 import {bootstrap} from './bootstrap';
 import {initIncomingMessagesHandler} from './transmission';
 import {enableLoader} from './ui';
 import {_resetSystem, memory} from 'system';
+import {DEVICE_QUEUE_SIZE, Transmitter} from '../common/transmitter';
+import {Tracking} from './tracking';
 
 
 jest.mock('./ui');
 jest.mock('./transmission');
+jest.mock('../common/transmitter');
+jest.mock('./tracking');
 
 describe('App bootstrap', () => {
   beforeEach(() => {
@@ -23,11 +28,24 @@ describe('App bootstrap', () => {
     expect(enableLoader).toHaveBeenCalledTimes(1);
   });
 
+  it('should create correct transmitter instance', () => {
+    expect(Transmitter).not.toHaveBeenCalled();
+
+    bootstrap();
+
+    expect(Transmitter).toHaveBeenCalledTimes(1);
+    expect(Transmitter).toHaveBeenLastCalledWith({queueSize: DEVICE_QUEUE_SIZE});
+  });
+
   it('should subscribe on messages', () => {
     expect(initIncomingMessagesHandler).not.toHaveBeenCalled();
     bootstrap();
 
     expect(initIncomingMessagesHandler).toHaveBeenCalledTimes(1);
+    expect(initIncomingMessagesHandler).toHaveBeenLastCalledWith({
+      transmitter: new Transmitter(),
+      tracking: _.last(Tracking.mock.instances),
+    });
   });
 
   it('should console log on launch', () => {
@@ -39,6 +57,15 @@ describe('App bootstrap', () => {
 
     expect(console.log).toHaveBeenCalled();
     expect(console.log).toHaveBeenCalledWith('App init');
+  });
+
+  it('should create tracking instance with transmitter', () => {
+    expect(Tracking).not.toHaveBeenCalled();
+
+    bootstrap();
+
+    expect(Tracking).toHaveBeenCalledTimes(1);
+    expect(Tracking).toHaveBeenLastCalledWith({transmitter: new Transmitter()});
   });
 
   describe('memory tracking', () => {
