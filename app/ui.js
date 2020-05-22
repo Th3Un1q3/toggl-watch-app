@@ -165,13 +165,21 @@ const enableCurrentEntryDeletion = (tracking) => {
 };
 
 const enableCurrentEntryPausing = (tracking) => {
-  _el('stop-resume-button').onactivate = () => tracking.stopCurrentEntry();
+  _el('delete-button').native.enabled = true;
+  _el('stop-resume-button').onactivate = () => {
+    tracking.stopCurrentEntry();
+    _el('delete-button').native.enabled = false;
+  };
   _el('stop-resume-button').native.getElementById('combo-button-icon').href = BUTTON_IMAGE.PAUSE;
   _el('stop-resume-button').native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PAUSE_PRESS;
 };
 
 const enableCurrentEntryResuming = (tracking) => {
-  _el('stop-resume-button').onactivate = () => tracking.resumeCurrentEntry();
+  _el('delete-button').native.enabled = true;
+  _el('stop-resume-button').onactivate = () => {
+    tracking.resumeCurrentEntry();
+    _el('delete-button').native.enabled = false;
+  };
   _el('stop-resume-button').native.getElementById('combo-button-icon').href = BUTTON_IMAGE.PLAY;
   _el('stop-resume-button').native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PLAY_PRESS;
 };
