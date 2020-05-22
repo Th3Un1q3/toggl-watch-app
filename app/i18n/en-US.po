@@ -1,5 +1,5 @@
 msgid "token_config_required_title"
-msgstr "Initial configuration required!"
+msgstr "Setting is needed!"
 
 msgid "token_config_required_body"
-msgstr "Please, visit FitBitApp > Apps > Toggl > Settings to setup required config"
+msgstr "Visit FitBit Application > Apps > Toggl > Settings and setup required config."
