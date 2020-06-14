@@ -2,7 +2,9 @@
 import {
   disableCurrentEntryDeletion,
   enableCurrentEntryDeletion,
-  enableCurrentEntryPausing, enableCurrentEntryResuming, enableLoader,
+  enableCurrentEntryPausing,
+  enableCurrentEntryResuming,
+  enableLoader,
   showCurrentEntry,
 } from './ui';
 import {MESSAGE_TYPE} from '../common/message-types';
@@ -17,6 +19,7 @@ class Tracking {
    * Definition of initial values and properties
    */
   constructor({transmitter}) {
+    this.currentEntryChange = {};
     this._transmitter = transmitter;
     this.currentEntry = null;
     this._currentEntryRefresh = null;

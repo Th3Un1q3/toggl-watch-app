@@ -1,0 +1,46 @@
+<svg>
+  <defs>
+    <link rel="stylesheet" href="time-entries-list.css" />
+    <link rel="import" href="/mnt/sysassets/widgets/tile_list_widget.gui" />
+    <symbol id="time-entry-item" href="#tile-list-item" focusable="true"
+            pointer-events="visible" system-events="all" display="none">
+
+      <rect id="wrapper" class="item-wrapper item-wrapper--hidden">
+        <rect id="background" class="item__background" />
+        <section class="item__content-container">
+          <text id="description" class="item__description">-----------------------------</text>
+          <text id="project" class="item__project">------------------------------------</text>
+          <section class="item__entry-properties">
+            <text id="billable" class="item__billing">$</text>
+            <text id="billable" class="entry-properties__separator">•</text>
+
+            <text id="duration" class="item__duration">00:33</text>
+
+            <line class="bottom-line"/>
+          </section>
+        </section>
+        <image class="item__control-icon" href="images/fitbit_icons/btn_combo_play_p.png" />
+      </rect>
+    </symbol>
+
+    <symbol id="time-entries-list-screen">
+      <use id="time-entries-list-container" class="time-entry-list" href="#tile-list">
+        <var id="virtual" value="1" />
+        <var id="separator-height-bottom" value="2" />
+
+        <use id="time-entry" href="#tile-list-pool">
+          <use id="time-entry[0]" href="#time-entry-item" class="time-entry-list__item time-entry-list__item--empty" />
+          <use id="time-entry[1]" href="#time-entry-item" class="time-entry-list__item time-entry-list__item--empty" />
+          <use id="time-entry[2]" href="#time-entry-item" class="time-entry-list__item time-entry-list__item--empty" />
+          <use id="time-entry[3]" href="#time-entry-item" class="time-entry-list__item" />
+          <use id="time-entry[4]" href="#time-entry-item" class="time-entry-list__item" />
+          <use id="time-entry[5]" href="#time-entry-item" class="time-entry-list__item" />
+          <use id="time-entry[6]" href="#time-entry-item" class="time-entry-list__item" />
+          <use id="time-entry[7]" href="#time-entry-item" class="time-entry-list__item" />
+          <use id="time-entry[8]" href="#time-entry-item" class="time-entry-list__item" />
+          <use id="time-entry[9]" href="#time-entry-item" class="time-entry-list__item" />
+        </use>
+      </use>
+    </symbol>
+  </defs>
+</svg>

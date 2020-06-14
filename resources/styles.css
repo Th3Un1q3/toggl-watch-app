@@ -2,109 +2,58 @@
 
 text {
     fill: fb-white;
+    font-size: 24;
+    font-family: System-Light;
 }
 
 
 /* reset end */
 
+.tile-divider-bottom {
+    x: 0;
+    y: 100%-2;
+    width: 100%;
+    height: 2;
+    fill: #A0A0A0;
+}
+
+#active-screen-indication {
+    y: 10;
+}
+
 #current-entry {
     display: none;
-    height: 100%;
-    width: 100%;
 }
 
-#stop-resume-button {
-    display: inline;
-    fill: fb-green;
-}
 
-#delete-button {
-    display: none;
-    fill: fb-red;
-}
+
+/* current time group begin */
 
 .current-time {
-    width: 100%;
-    font-size: 24;
-    y: 12+24;
+    width: 100;
+    y: 44;
     x: 50%;
     text-anchor: middle;
 }
 
-#current-entry-project {
-    x: 6;
-    y: 50%-57;
-    width: 100%;
-    height: 45;
-    fill: #a0a0a0;
-    font-size: 35;
+.tracking__indicators-background {
+    x: 50%-50;
+    y: 24;
+    height: 24;
+    width: 100;
+    gradient-type: radial;
+    gradient-x1: 50;
+    gradient-y1: 12;
+    gradient-x2: 100;
+    gradient-y2: 24;
+    gradient-color1: fb-black;
+    gradient-color2: fb-black;
+    gradient-opacity1: 1;
+    gradient-opacity2: 0.5;
 }
 
-#current-entry-description {
-    x: 6;
-    y: 50%-17;
-    width: 100%;
-    height: 70;
-    fill: fb-white;
-    font-size: 50;
-}
 
-.current-entry__screen-separator {
-    x1: 16;
-    y1: 100%-12-60;
-    x2: 46%-6;
-    y2: 100%-12-60;
-    fill: #a0a0a0;
-    stroke-width: 2;
-}
-
-.current-entry__time-wrapper {
-    y: 100%-12;
-    x: 6;
-    width: 70%;
-    height: 60;
-}
-
-.current-entry__time {
-    y: 0;
-    x: 0;
-    width: 33%;
-    letter-spacing: 0;
-    text-anchor: middle;
-    font-size: 60;
-    font-family: System-Light;
-}
-
-.current-entry__time--active {
-    letter-spacing: -2;
-    font-family: System-Regular;
-}
-
-.current-entry__separator-wrapper {
-    y: -4;
-    x: 0;
-    /* current-entry__time font-size multiplied by 0.15 + letter-spacing */
-}
-
-.current-entry__separator {
-    x: 33%;
-}
-
-.current-entry__separator--last {
-    x: 66%;
-}
-
-.current-entry__time-hours {
-    x: 17%;
-}
-
-.current-entry__time-minutes {
-    x: 50%;
-}
-
-.current-entry__time-seconds {
-    x: 83%;
-}
+/* current time group end */
 
 #loader {
     x: 50%-25;

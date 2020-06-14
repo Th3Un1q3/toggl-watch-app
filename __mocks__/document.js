@@ -23,7 +23,9 @@ const ASSUMED_BODY = `
         </button>
     </div>
 </div>
-<div id="loader">loader</div>
+<div id="loader-container" style="display: none">
+    <div id="loader">loader</div>
+</div>
 <div id="configuration-instruction" style="display: none">content</div>
 `;
 
@@ -31,7 +33,7 @@ const dom = new JSDOM(`<body>
   ${ASSUMED_BODY}
 </body>`);
 
-const {document} = dom.window;
+const {document: fakeDocument} = dom.window;
 
 const attachDeviceButtonHandlers = (button) => {
   Object.assign(button, {
@@ -47,9 +49,9 @@ const attachDeviceButtonHandlers = (button) => {
   });
 };
 
-document._reset = () => {
-  document.body.innerHTML = ASSUMED_BODY;
-  Array.from(document.getElementsByTagName('button')).forEach(attachDeviceButtonHandlers);
+fakeDocument._reset = () => {
+  fakeDocument.body.innerHTML = ASSUMED_BODY;
+  Array.from(fakeDocument.getElementsByTagName('button')).forEach(attachDeviceButtonHandlers);
 };
 
-export default document;
+export default fakeDocument;

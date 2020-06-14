@@ -1,4 +1,4 @@
-import './custom-matchers';
+import '@testing-library/jest-dom';
 let originalFetch;
 
 beforeEach(() => {

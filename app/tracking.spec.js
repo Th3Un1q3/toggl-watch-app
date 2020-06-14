@@ -120,6 +120,8 @@ describe('Tracking on device', () => {
   });
 
   describe('.currentEntryUpdated', () => {
+    it.todo('should emit currentEntryChange');
+
     it('should call show current entry instantly', () => {
       tracking.currentEntryUpdated(currentEntry);
 
