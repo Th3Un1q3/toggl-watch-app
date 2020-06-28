@@ -2,7 +2,7 @@ import {DEVICE_QUEUE_SIZE, Transmitter} from '../common/transmitter';
 import {Tracking} from './tracking';
 import {memory} from 'system';
 import {MESSAGE_TYPE} from '../common/message-types';
-import {enableLoader, hideConfigurationRequired, showConfigurationRequired} from './ui';
+import {UserInterface} from './new-ui';
 
 /**
  * Application module manages how different modules setup
@@ -40,12 +40,18 @@ class App {
   }
 
   /**
+   * Initiates ui module to work with tracking
+   * @return {*|UserInterface}
+   */
+  get ui() {
+    return this._ui = this._ui || new UserInterface({tracking: this.tracking});
+  }
+
+  /**
    * Launches initial handlers and subscriptions
    * @private
    */
   _initialize() {
-    // TODO: delegate enableLoader to ui.initialize()
-    enableLoader();
     this._showMemoryInfo();
     this._subscribeOnMessages();
     memory.monitor.onmemorypressurechange = () => this._showMemoryInfo();
@@ -59,10 +65,10 @@ class App {
   _subscribeOnMessages() {
     this.transmitter.onMessage(MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE, ({configured}) => {
       if (!configured) {
-        return showConfigurationRequired();
+        return this.ui.showConfigurationRequired();
       }
 
-      hideConfigurationRequired();
+      this.ui.hideConfigurationRequired();
     });
 
     this.transmitter.onMessage(MESSAGE_TYPE.CURRENT_ENTRY_UPDATE, (entry) => {

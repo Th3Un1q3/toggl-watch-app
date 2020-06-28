@@ -3,10 +3,10 @@ import {DEVICE_QUEUE_SIZE, Transmitter} from '../common/transmitter';
 import {Tracking} from './tracking';
 import {MESSAGE_TYPE} from '../common/message-types';
 import {timeEntryBody} from '../utils/factories/time-entries';
-import {enableLoader, hideConfigurationRequired, showConfigurationRequired} from './ui';
 import {App} from './app';
+import {UserInterface} from './new-ui';
 
-jest.mock('./ui');
+jest.mock('./new-ui');
 jest.mock('../common/transmitter');
 jest.mock('./tracking');
 
@@ -30,12 +30,6 @@ describe('Application module', () => {
     expect(() => App.instance).not.toThrow();
   });
 
-  it('should enable loader on start', () => {
-    expect(enableLoader).not.toHaveBeenCalled();
-    App.instance;
-    expect(enableLoader).toHaveBeenCalledTimes(1);
-  });
-
   describe('modules instantiation', () => {
     it('should create correct transmitter instance', () => {
       expect(Transmitter).not.toHaveBeenCalled();
@@ -54,6 +48,15 @@ describe('Application module', () => {
 
       expect(Tracking).toHaveBeenCalledTimes(1);
       expect(Tracking).toHaveBeenLastCalledWith({transmitter: App.instance.transmitter});
+    });
+
+    it('should create ui instance with tracking', () => {
+      expect(UserInterface).not.toHaveBeenCalled();
+
+      expect(App.instance.ui).toBeInstanceOf(UserInterface);
+
+      expect(UserInterface).toHaveBeenCalledTimes(1);
+      expect(UserInterface).toHaveBeenCalledWith({tracking: App.instance.tracking});
     });
   });
 
@@ -121,8 +124,8 @@ describe('Application module', () => {
       };
 
       it('should not call any ui changes unless message received', () => {
-        expect(showConfigurationRequired).not.toHaveBeenCalled();
-        expect(hideConfigurationRequired).not.toHaveBeenCalled();
+        expect(App.instance.ui.showConfigurationRequired).not.toHaveBeenCalled();
+        expect(App.instance.ui.hideConfigurationRequired).not.toHaveBeenCalled();
       });
 
 
@@ -130,7 +133,7 @@ describe('Application module', () => {
         it('should call ui.showConfigurationRequired', () => {
           triggerMessageReceived({configured: false});
 
-          expect(showConfigurationRequired).toHaveBeenCalled();
+          expect(App.instance.ui.showConfigurationRequired).toHaveBeenCalled();
         });
       });
 
@@ -140,11 +143,11 @@ describe('Application module', () => {
         });
 
         it('should call ui.hideConfigurationRequired', () => {
-          expect(hideConfigurationRequired).toHaveBeenCalledTimes(1);
+          expect(App.instance.ui.hideConfigurationRequired).toHaveBeenCalledTimes(1);
         });
 
         it('should not call ui.showConfigurationRequired', () => {
-          expect(showConfigurationRequired).not.toHaveBeenCalled();
+          expect(App.instance.ui.showConfigurationRequired).not.toHaveBeenCalled();
         });
       });
     });

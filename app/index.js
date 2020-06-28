@@ -1,6 +1,6 @@
 import {App} from './app';
 
-App.instance;
+App.instance.ui; // TODO: add a test for start
 
 // import document from 'document';
 

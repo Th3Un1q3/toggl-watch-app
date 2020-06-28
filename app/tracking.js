@@ -1,17 +1,5 @@
-
-import {
-  disableCurrentEntryDeletion,
-  enableCurrentEntryDeletion,
-  enableCurrentEntryPausing,
-  enableCurrentEntryResuming,
-  enableLoader,
-  showCurrentEntry,
-} from './ui';
-import {MESSAGE_TYPE} from '../common/message-types';
-import {Subject} from '../common/observable';
-
-// TODO: move to UI module
-const TIMER_UPDATE_INTERVAL_MS = 1000;
+import { MESSAGE_TYPE } from '../common/message-types';
+import { Subject } from '../common/observable';
 
 /**
  * This module is responsible for tracking and works in pair with companion's tracking module.
@@ -24,7 +12,6 @@ class Tracking {
     this.currentEntryChange = new Subject();
     this._transmitter = transmitter;
     this.currentEntry = null;
-    this._currentEntryRefresh = null;
   }
 
   /**
@@ -33,10 +20,7 @@ class Tracking {
    */
   currentEntryUpdated(entry) {
     this.currentEntry = entry;
-    showCurrentEntry(this.currentEntry);
-    this._configureCurrentEntryControls();
-
-    this._launchCurrentEntryRefresh();
+    this.currentEntryChange.next(entry);
   }
 
   /**
@@ -49,9 +33,7 @@ class Tracking {
         id: this.currentEntry.id,
       },
     });
-    // this.currentEntryUpdated(null); TODO: apply this
-    clearInterval(this._currentEntryRefresh); // TODO: remove refresh
-    enableLoader();
+    this.currentEntryUpdated(null);
   }
 
   /**
@@ -81,39 +63,9 @@ class Tracking {
     });
     this.currentEntryUpdated({...this.currentEntry, start: undefined});
   }
-
-  /**
-   * Configures required ui controls depend of what
-   * is applicable to the current time entry
-   * @private
-   */
-  _configureCurrentEntryControls() {
-    if (this.currentEntry.start) {
-      enableCurrentEntryPausing(this);
-      enableCurrentEntryDeletion(this);
-      return;
-    }
-
-    enableCurrentEntryResuming(this);
-    disableCurrentEntryDeletion(this);
-  }
-
-  /**
-   * Starts screen refresh process
-   * @private
-   */
-  _launchCurrentEntryRefresh() { // TODO: remove this after it's moved to UI
-    if (this._currentEntryRefresh) {
-      clearInterval(this._currentEntryRefresh);
-    }
-
-    this._currentEntryRefresh = setInterval(() => {
-      showCurrentEntry(this.currentEntry);
-    }, TIMER_UPDATE_INTERVAL_MS);
-  }
 }
 
 export {
   Tracking,
-  TIMER_UPDATE_INTERVAL_MS,
+
 };

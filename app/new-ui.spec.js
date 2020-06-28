@@ -1,6 +1,5 @@
 import document from 'document';
-import {BUTTON_IMAGE, LOADER_STATE, showCurrentEntry} from './ui';
-import {UserInterface} from './new-ui';
+import {UserInterface, BUTTON_IMAGE, LOADER_STATE, TIMER_UPDATE_INTERVAL_MS} from './new-ui';
 import {Subject} from '../common/observable';
 import faker from 'faker';
 
@@ -28,6 +27,24 @@ describe('UI module', () => {
   const assertLoaderDisabled = () => {
     it('should make loader state enabled and loader visible', () => {
       expect(loader).not.toBeVisible();
+    });
+  };
+
+  const assertDeleteButtonIsDisabled = () => {
+    it('should hide screen delete button', () => {
+      expect(deleteButton)
+          .not
+          .toBeVisible();
+      expect(deleteButton.enabled)
+          .toBeFalsy();
+    });
+
+    it('should de-attach physical button click handler', () => {
+      deleteButton.click();
+
+      expect(tracking.deleteCurrentEntry)
+          .not
+          .toHaveBeenCalled();
     });
   };
 
@@ -110,9 +127,22 @@ describe('UI module', () => {
     assertLoaderDisabled();
 
     describe('when there is no entry', () => {
-      it.todo('should enable loader');
-      it.todo('should disable deletion');
-      it.todo('should disable stop-resume');
+      beforeEach(() => {
+        tracking.currentEntry.start = start;
+        tracking.currentEntryChange.next();
+        tracking.currentEntry = null;
+        tracking.currentEntryChange.next(null);
+      });
+      assertLoaderEnabled();
+      assertDeleteButtonIsDisabled();
+
+      it('should disable stop-resume', () => {
+        expect(stopResumeButton.enabled).toBeFalsy();
+        stopResumeButton.click();
+
+        expect(tracking.resumeCurrentEntry).not.toHaveBeenCalled();
+        expect(tracking.stopCurrentEntry).not.toHaveBeenCalled();
+      });
     });
 
     describe('when entry is not playing', () => {
@@ -128,16 +158,8 @@ describe('UI module', () => {
         expect(seconds.class).toEqual(expect.stringContaining(timeSectionActiveClass));
       });
 
-      it('should hide screen delete button', () => {
-        expect(deleteButton).not.toBeVisible();
-        expect(deleteButton.enabled).toBeFalsy();
-      });
 
-      it('should de-attach physical button click handler', () => {
-        deleteButton.click();
-
-        expect(tracking.deleteCurrentEntry).not.toHaveBeenCalled();
-      });
+      assertDeleteButtonIsDisabled();
 
 
       it('should set button image to play', () => {
@@ -180,7 +202,7 @@ describe('UI module', () => {
           const extraSecondsInMS = 9.2 * 1000;
           Date.now.mockReturnValue(start + extraSecondsInMS);
 
-          jest.advanceTimersByTime(1500);
+          jest.advanceTimersByTime(TIMER_UPDATE_INTERVAL_MS);
 
           expect(hours.text).toEqual('00');
           expect(minutes.text).toEqual('00');

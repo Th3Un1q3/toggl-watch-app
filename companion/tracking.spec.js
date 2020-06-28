@@ -67,7 +67,7 @@ describe('Tracking', () => {
         }));
       });
 
-      it('should make tracking.updateCurrentEntry', () => {
+      it('should make tracking.displayCurrentEntryInfo', () => {
         expect(tracking.updateCurrentEntry).toHaveBeenCalledTimes(1);
       });
 
@@ -111,7 +111,7 @@ describe('Tracking', () => {
         }));
       });
 
-      it('should make tracking.updateCurrentEntry', () => {
+      it('should make tracking.displayCurrentEntryInfo', () => {
         expect(tracking.updateCurrentEntry).toHaveBeenCalledTimes(1);
       });
 
@@ -176,7 +176,7 @@ describe('Tracking', () => {
         }));
       });
 
-      it('should make tracking.updateCurrentEntry', () => {
+      it('should make tracking.displayCurrentEntryInfo', () => {
         expect(tracking.updateCurrentEntry).toHaveBeenCalledTimes(1);
       });
 
