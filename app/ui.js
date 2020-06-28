@@ -98,7 +98,6 @@ const showCurrentEntry = (entry = {}) => {
     _el('current-entry-timer-hours').text = '--';
     _el('current-entry-timer-minutes').text = '--';
     _el('current-entry-timer-seconds').text = '--';
-    _el('current-entry-timer-seconds').addClass(TIMER_SECTION_ACTIVE_CLASS);
     _assignActiveClass();
     return;
   }

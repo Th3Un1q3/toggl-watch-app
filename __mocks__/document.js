@@ -6,12 +6,12 @@
 import {JSDOM} from 'jsdom';
 
 const ASSUMED_BODY = `
-<div id="current-entry" style="display: none">
+<div id="current-entry">
     <div id="current-entry-project" style="fill: white"></div>
     <div id="current-entry-description"></div>
     <div>
-        <div id="current-entry-timer-hours"></div>
-        <div id="current-entry-timer-minutes"></div>
+        <div class="current-entry__time--active" id="current-entry-timer-hours"></div>
+        <div class="some" id="current-entry-timer-minutes"></div>
         <div class="some" id="current-entry-timer-seconds"></div>
         <button id="delete-button" style="display: none">
             <image id="combo-button-icon" href="delete.png"></image>

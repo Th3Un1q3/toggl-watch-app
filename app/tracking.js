@@ -8,7 +8,9 @@ import {
   showCurrentEntry,
 } from './ui';
 import {MESSAGE_TYPE} from '../common/message-types';
+import {Subject} from '../common/observable';
 
+// TODO: move to UI module
 const TIMER_UPDATE_INTERVAL_MS = 1000;
 
 /**
@@ -19,7 +21,7 @@ class Tracking {
    * Definition of initial values and properties
    */
   constructor({transmitter}) {
-    this.currentEntryChange = {};
+    this.currentEntryChange = new Subject();
     this._transmitter = transmitter;
     this.currentEntry = null;
     this._currentEntryRefresh = null;
@@ -47,7 +49,8 @@ class Tracking {
         id: this.currentEntry.id,
       },
     });
-    clearInterval(this._currentEntryRefresh);
+    // this.currentEntryUpdated(null); TODO: apply this
+    clearInterval(this._currentEntryRefresh); // TODO: remove refresh
     enableLoader();
   }
 
@@ -99,7 +102,7 @@ class Tracking {
    * Starts screen refresh process
    * @private
    */
-  _launchCurrentEntryRefresh() {
+  _launchCurrentEntryRefresh() { // TODO: remove this after it's moved to UI
     if (this._currentEntryRefresh) {
       clearInterval(this._currentEntryRefresh);
     }
