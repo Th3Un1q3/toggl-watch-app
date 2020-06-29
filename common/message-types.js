@@ -4,4 +4,5 @@ export const MESSAGE_TYPE = Object.freeze({
   DELETE_CURRENT_ENTRY: 3,
   RESUME_LAST_ENTRY: 4,
   STOP_CURRENT_ENTRY: 5,
+  ENTRIES_LOG_UPDATE: 6,
 });

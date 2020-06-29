@@ -4,9 +4,9 @@ import {Tracking} from './tracking';
 import {MESSAGE_TYPE} from '../common/message-types';
 import {timeEntryBody} from '../utils/factories/time-entries';
 import {App} from './app';
-import {UserInterface} from './new-ui';
+import {UserInterface} from './ui';
 
-jest.mock('./new-ui');
+jest.mock('./ui');
 jest.mock('../common/transmitter');
 jest.mock('./tracking');
 

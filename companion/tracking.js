@@ -1,10 +1,11 @@
 import {MESSAGE_TYPE} from '../common/message-types';
 import {gettext} from 'i18n';
 import {debug} from '../common/debug';
+import {Subject} from '../common/observable';
 
 const NO_PROJECT_COLOR = '#a0a0a0';
 
-const CURRENT_ENTRY_REFRESH_INTERVAL_MS = 15000;
+const ENTRIES_REFRESH_INTERVAL = 15000;
 
 const OPTIMAL_TEXTS_LENGTH = 64;
 
@@ -19,7 +20,12 @@ const EMPTY_TIME_ENTRY = {
   ...NO_PROJECT_INFO,
 };
 
-const entryUniquenessId = ({id, start, stop, pid, description} = {}) => [id, start, stop, pid, description].join(':');
+const entryUniquenessId = (timeEntry) => {
+  const {id, start, stop, pid, description} = timeEntry || {};
+  return [id, start, stop, pid, description].join(':');
+};
+
+const isEntryTheSame = (entry1, entry2) => entry1 && entry2 && entryUniquenessId(entry1) === entryUniquenessId(entry2);
 
 const optimiseStringForDisplaying = (input) => {
   if (input && input.length > OPTIMAL_TEXTS_LENGTH) {
@@ -40,12 +46,75 @@ class Tracking {
   constructor({api, transmitter}) {
     this._api = api;
     this._transmitter = transmitter;
-    this._updateCurrentEntryInterval = null;
+    this._synchronisationInterval = null;
     this.user = null;
-    this.currentEntry = null;
+    this._currentEntry = new Subject(null, {
+      changeOnly: isEntryTheSame,
+    });
+    this._timeEntriesLog = new Subject([], {changeOnly: true});
     this.projects = [];
+    this._subscribeCurrentEntry();
+    this._subscribeEntriesLog();
     this._attachCommandsProcessing();
     this.initialize();
+  }
+
+  /**
+   * Sends a message with updated entry when current entry is changed
+   * @private
+   */
+  _subscribeCurrentEntry() {
+    this._currentEntry.subscribe(() => {
+      this._transmitter.sendMessage({
+        type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
+        data: this._currentEntryMessage,
+      });
+    }, {immediate: true});
+  }
+
+  /**
+   * Sends entries log update on change
+   * @private
+   */
+  _subscribeEntriesLog() {
+    this._timeEntriesLog.subscribe(() => {
+      this._transmitter.sendMessage({
+        type: MESSAGE_TYPE.ENTRIES_LOG_UPDATE,
+        data: this._timeEntriesLog.value.map(({id}) => id),
+      });
+    }, {immediate: true});
+  }
+
+  /**
+   * gets current entry value
+   * @return {*}
+   */
+  get currentEntry() {
+    return this._currentEntry.value;
+  }
+
+  /**
+   * Returns a log of time entries
+   * @return {*}
+   */
+  get timeEntriesLog() {
+    return this._timeEntriesLog.value;
+  }
+
+  /**
+   * Updates time entries log
+   * @param {*} newLog
+   */
+  set timeEntriesLog(newLog) {
+    this._timeEntriesLog.next(newLog);
+  }
+
+  /**
+   * Updates current entry in place
+   * @param {Object} newValue
+   */
+  set currentEntry(newValue) {
+    this._currentEntry.next(newValue);
   }
 
   /**
@@ -54,7 +123,8 @@ class Tracking {
    */
   async initialize() {
     await this._updateUserData();
-    await this._setupCurrentEntryTracking();
+    await this._fetchRecentTimeEntries();
+    await this._launchEntriesRefreshing();
     debug('tracking initialized');
   }
 
@@ -62,19 +132,8 @@ class Tracking {
    * Updates current entry status and info
    * @return {Promise<void>}
    */
-  async updateCurrentEntry() {
-    const fetchedEntry = await this._fetchMostRecentEntry();
-
-    if (this._matchesAlreadyFetchedEntry(fetchedEntry)) {
-      return;
-    }
-
-    this.currentEntry = fetchedEntry;
-
-    this._transmitter.sendMessage({
-      type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
-      data: this._currentEntryMessage,
-    });
+  async refreshCurrentEntry() {
+    this.currentEntry = await this._fetchMostRecentEntry();
   }
 
   /**
@@ -92,7 +151,7 @@ class Tracking {
         await this._api.updateTimeEntry(this.currentEntry);
       }
 
-      await this._setupCurrentEntryTracking();
+      await this._launchEntriesRefreshing();
     });
 
     this._transmitter.onMessage(MESSAGE_TYPE.RESUME_LAST_ENTRY, async ({start, id}) => {
@@ -107,18 +166,21 @@ class Tracking {
         await this._api.createTimeEntry(this.currentEntry);
       }
 
-      await this._setupCurrentEntryTracking();
+      await this._launchEntriesRefreshing();
     });
 
     this._transmitter.onMessage(MESSAGE_TYPE.DELETE_CURRENT_ENTRY, async ({id}) => {
       if (id === this.currentEntryId) {
         await this._api.deleteTimeEntry(this.currentEntry);
       }
-      this.currentEntry = null;
-      await this._setupCurrentEntryTracking();
+      await this._launchEntriesRefreshing();
     });
   }
 
+  /**
+   * Returns and id of current time entry
+   * @return {null|string}
+   */
   get currentEntryId() {
     return this.currentEntry && this.currentEntry.id;
   }
@@ -128,16 +190,16 @@ class Tracking {
    * @return {Promise<void>}
    * @private
    */
-  async _setupCurrentEntryTracking() {
-    if (this._updateCurrentEntryInterval) {
-      clearInterval(this._updateCurrentEntryInterval);
+  async _launchEntriesRefreshing() {
+    if (this._synchronisationInterval) {
+      clearInterval(this._synchronisationInterval);
     }
 
-    await this.updateCurrentEntry();
+    await this.refreshCurrentEntry();
 
-    this._updateCurrentEntryInterval = setInterval(() => {
-      this.updateCurrentEntry();
-    }, CURRENT_ENTRY_REFRESH_INTERVAL_MS);
+    this._synchronisationInterval = setInterval(() => {
+      this.refreshCurrentEntry();
+    }, ENTRIES_REFRESH_INTERVAL);
   }
 
   /**
@@ -156,17 +218,15 @@ class Tracking {
    * @private
    */
   async _fetchMostRecentEntry() {
-    return await this._api.fetchCurrentEntry() || (await this._api.fetchTimeEntries() || [])[0];
+    return await this._api.fetchCurrentEntry() || (this.timeEntriesLog)[0];
   }
 
   /**
-   * Checks if provided entry matches already fetched one
-   * @param {Object} fetchedEntry
-   * @return {null|*}
-   * @private
+   *  Returns a list of recent time entries
+   * @return {Promise<*[]>}
    */
-  _matchesAlreadyFetchedEntry(fetchedEntry) {
-    return this.currentEntry && entryUniquenessId(fetchedEntry) === entryUniquenessId(this.currentEntry);
+  async _fetchRecentTimeEntries() {
+    this.timeEntriesLog = await this._api.fetchTimeEntries() || [];
   }
 
   /**
@@ -225,7 +285,7 @@ class Tracking {
 
 export {
   Tracking,
-  CURRENT_ENTRY_REFRESH_INTERVAL_MS,
+  ENTRIES_REFRESH_INTERVAL,
   NO_PROJECT_COLOR,
   NO_PROJECT_INFO,
   OPTIMAL_TEXTS_LENGTH,

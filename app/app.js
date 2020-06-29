@@ -2,7 +2,7 @@ import {DEVICE_QUEUE_SIZE, Transmitter} from '../common/transmitter';
 import {Tracking} from './tracking';
 import {memory} from 'system';
 import {MESSAGE_TYPE} from '../common/message-types';
-import {UserInterface} from './new-ui';
+import {UserInterface} from './ui';
 
 /**
  * Application module manages how different modules setup

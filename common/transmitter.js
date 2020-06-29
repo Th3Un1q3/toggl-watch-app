@@ -19,10 +19,12 @@ class Transmitter {
     this._messageQueue = [];
 
     peerSocket.onbufferedamountdecrease = () => {
+      debug('buffer amount decreased', peerSocket.bufferedAmount);
       this._sendQueuedMessages();
     };
 
     peerSocket.onopen = () => {
+      debug('connection opened');
       this._sendQueuedMessages();
     };
 
@@ -37,6 +39,7 @@ class Transmitter {
    * @return {boolean}
    */
   get isTransmissionAllowed() {
+    debug('buffer amount', peerSocket.bufferedAmount);
     return peerSocket.bufferedAmount < SUSPENSION_BUFFER_BYTES &&
       peerSocket.readyState === peerSocket.OPEN;
   }
@@ -110,7 +113,7 @@ class Transmitter {
     const messageHandlers = new Map();
 
     peerSocket.onmessage = ({data: message}) => {
-      debug('received', {message});
+      debug('received', message);
       const {type, data} = message || {};
 
       if (type) {

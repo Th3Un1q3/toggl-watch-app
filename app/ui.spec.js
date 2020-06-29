@@ -1,5 +1,5 @@
 import document from 'document';
-import {UserInterface, BUTTON_IMAGE, LOADER_STATE, TIMER_UPDATE_INTERVAL_MS} from './new-ui';
+import {UserInterface, BUTTON_IMAGE, LOADER_STATE, TIMER_UPDATE_INTERVAL_MS} from './ui';
 import {Subject} from '../common/observable';
 import faker from 'faker';
 

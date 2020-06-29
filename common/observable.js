@@ -1,3 +1,7 @@
+const defaultCompare = (value1, value2) => {
+  return value1 && (value1 === value2 || JSON.stringify(value1) === JSON.stringify(value2));
+};
+
 /**
  * Subscription object
  */
@@ -25,9 +29,14 @@ class Subject {
   /**
    * Makes an subject to observe
    * @param {*} value - initial value
+   * @param {boolean|function} changeOnly - Defines if only dispatch a change if the value is changed
    */
   constructor(value, {changeOnly = false} = {}) {
     this.value = value;
+    this.isMatch = (changeOnly && defaultCompare) || (() => false);
+    if (typeof changeOnly === 'function') {
+      this.isMatch = changeOnly;
+    }
     this._changeOnly = changeOnly;
     this._subscriptions = [];
   }
@@ -37,8 +46,7 @@ class Subject {
    * @param {*} newValue
    */
   next(newValue) {
-    const changed = this.value !== newValue;
-    if (this._changeOnly && !changed) {
+    if (this.isMatch(this.value, newValue)) {
       return;
     }
 
@@ -54,10 +62,10 @@ class Subject {
     this.handlers.forEach(this.dispatchHandler.bind(this));
   }
 
-  // TODO: test for non handler
   /**
    * Creates a new subscription
    * @param {function} handler
+   * @param {boolean} immediate
    * @return {Subscription}
    */
   subscribe(handler = null, {immediate = false} = {}) {
