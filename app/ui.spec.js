@@ -2,11 +2,13 @@ import document from 'document';
 import {UserInterface, BUTTON_IMAGE, LOADER_STATE, TIMER_UPDATE_INTERVAL_MS} from './ui';
 import {Subject} from '../common/observable';
 import faker from 'faker';
+import {timeEntryDetails} from '../companion/tracking';
+import {timeEntryBody} from '../utils/factories/time-entries';
+import {projectBody} from '../utils/factories/projects';
 
 describe('UI module', () => {
   let configurationRequired;
   let loader;
-  let currentEntry;
   let project;
   let description;
   let hours;
@@ -16,6 +18,7 @@ describe('UI module', () => {
   let stopResumeButton;
   let uiInstance;
   let tracking;
+  let entriesLog;
 
   const assertLoaderEnabled = () => {
     it('should make loader state enabled and loader visible', () => {
@@ -51,7 +54,6 @@ describe('UI module', () => {
   const initializeAllElements = () => {
     configurationRequired = document.getElementById('configuration-instruction');
     loader = document.getElementById('loader');
-    currentEntry = document.getElementById('current-entry');
     project = document.getElementById('current-entry-project');
     description = document.getElementById('current-entry-description');
     hours = document.getElementById('current-entry-timer-hours');
@@ -59,11 +61,12 @@ describe('UI module', () => {
     seconds = document.getElementById('current-entry-timer-seconds');
     deleteButton = document.getElementById('delete-button');
     stopResumeButton = document.getElementById('stop-resume-button');
+    entriesLog = document.getElementById('time-entries-list-container');
   };
 
   const initializeUI = () => {
     tracking = {
-      currentEntryChange: new Subject(),
+      currentEntrySubject: new Subject(),
       deleteCurrentEntry: jest.fn(),
       resumeCurrentEntry: jest.fn(),
       stopCurrentEntry: jest.fn(),
@@ -85,8 +88,8 @@ describe('UI module', () => {
   describe('on initialize', () => {
     assertLoaderEnabled();
 
-    it('should subscribe on tracking.currentEntryChange', () => {
-      expect(tracking.currentEntryChange.hasSubscriptions).toBeTruthy();
+    it('should subscribe on tracking.currentEntrySubject', () => {
+      expect(tracking.currentEntrySubject.hasSubscriptions).toBeTruthy();
     });
 
     describe('if loading takes longer than 10 seconds', () => {
@@ -99,15 +102,9 @@ describe('UI module', () => {
     const timeSectionActiveClass = 'current-entry__time--active';
 
     beforeEach(() => {
-      tracking.currentEntry = {
-        id: faker.random.number(),
-        desc: faker.lorem.sentence(),
-        billable: true,
-        color: '#a0a0a0',
-        projectName: faker.hacker.adjective(),
-      };
+      tracking.currentEntry = timeEntryDetails(timeEntryBody(), projectBody({id: 11}));
 
-      tracking.currentEntryChange.next();
+      tracking.currentEntrySubject.next(tracking.currentEntry);
 
       initializeAllElements();
     });
@@ -128,10 +125,9 @@ describe('UI module', () => {
 
     describe('when there is no entry', () => {
       beforeEach(() => {
-        tracking.currentEntry.start = start;
-        tracking.currentEntryChange.next();
+        tracking.currentEntrySubject.next(tracking.currentEntry);
         tracking.currentEntry = null;
-        tracking.currentEntryChange.next(null);
+        tracking.currentEntrySubject.next(null);
       });
       assertLoaderEnabled();
       assertDeleteButtonIsDisabled();
@@ -146,6 +142,12 @@ describe('UI module', () => {
     });
 
     describe('when entry is not playing', () => {
+      beforeEach(() => {
+        tracking.currentEntry = timeEntryDetails(timeEntryBody({isPlaying: false}), projectBody({id: 11}));
+
+        tracking.currentEntrySubject.next(tracking.currentEntry);
+      });
+
       it('should stop timer refresh and set it to --:--:--', () => {
         expect(hours.text).toEqual('--');
         expect(minutes.text).toEqual('--');
@@ -183,15 +185,17 @@ describe('UI module', () => {
 
     describe('when entry is playing', () => {
       beforeEach(() => {
-        tracking.currentEntry.start = start;
-        tracking.currentEntryChange.next();
+        tracking.currentEntry = timeEntryDetails(timeEntryBody({
+          start: new Date(start).toISOString(),
+        }), projectBody({id: 11}));
+        tracking.currentEntrySubject.next(tracking.currentEntry);
         initializeAllElements();
       });
 
       describe('timer', () => {
         beforeEach(() => {
           Date.now.mockReturnValue(start);
-          tracking.currentEntryChange.next();
+          tracking.currentEntrySubject.next(tracking.currentEntry);
         });
 
         it('should refresh timer', () => {
@@ -218,7 +222,7 @@ describe('UI module', () => {
 
             Date.now.mockReturnValue(start + extraSecondsInMS + extraMinutesInMS);
 
-            tracking.currentEntryChange.next();
+            tracking.currentEntrySubject.next();
           });
 
           it('should set corresponding timer section texts 00:15:09', () => {
@@ -242,7 +246,7 @@ describe('UI module', () => {
 
             Date.now.mockReturnValue(start + extraSecondsInMS + extraMinutesInMS + extraHoursInMS);
 
-            tracking.currentEntryChange.next();
+            tracking.currentEntrySubject.next();
           });
 
           it('should set corresponding timer section texts 02:15:09', () => {
@@ -264,7 +268,7 @@ describe('UI module', () => {
 
             Date.now.mockReturnValue(start + extraSecondsInMS);
 
-            tracking.currentEntryChange.next();
+            tracking.currentEntrySubject.next(tracking.currentEntry);
           });
 
           it('should set corresponding timer section texts 00:00:09', () => {

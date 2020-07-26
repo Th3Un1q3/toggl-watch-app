@@ -70,10 +70,6 @@ class App {
 
       this.ui.hideConfigurationRequired();
     });
-
-    this.transmitter.onMessage(MESSAGE_TYPE.CURRENT_ENTRY_UPDATE, (entry) => {
-      this.tracking.currentEntryUpdated(entry);
-    });
   }
 
   /**

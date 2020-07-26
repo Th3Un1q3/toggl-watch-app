@@ -47,7 +47,7 @@ class UserInterface {
    * @return {boolean}
    */
   get isCurrentEntryPlaying() {
-    return !!this.currentEntry && !!this.currentEntry.start;
+    return !!this.currentEntry && this.currentEntry.isPlaying;
   }
 
   /**
@@ -88,6 +88,7 @@ class UserInterface {
    * Allows to resume last entry
    */
   enableCurrentEntryResuming() {
+    this._enableStopResumeButton();
     _el('stop-resume-button').onactivate = () => {
       this.tracking.resumeCurrentEntry();
     };
@@ -100,6 +101,7 @@ class UserInterface {
    * and configures corresponding icon
    */
   enableCurrentEntryPausing() {
+    this._enableStopResumeButton();
     _el('stop-resume-button').onactivate = () => {
       this.tracking.stopCurrentEntry();
     };
@@ -116,7 +118,6 @@ class UserInterface {
     _el('delete-button').native.enabled = true;
   }
 
-
   /**
    * Enables loader
    */
@@ -124,6 +125,7 @@ class UserInterface {
     _el('loader-container').show();
     _el('loader').state = LOADER_STATE.ENABLED;
   }
+
 
   /**
    * Hide how application can be configured message
@@ -136,27 +138,25 @@ class UserInterface {
    * Handles current entry change
    */
   onCurrentEntryChange() {
+    this._stopCurrentEntryRefresh();
+    this._disableCurrentEntryControls();
+
     if (!this.currentEntry) {
       this.enableLoader();
-      _el('stop-resume-button').native.enabled = false;
-      this.disableDeleteButton();
+
       return;
     }
 
     this.disableLoader();
-    this._stopCurrentEntryRefresh();
     this.displayCurrentEntryInfo();
 
     if (this.isCurrentEntryPlaying) {
       this.enableDeleteButton();
       this.enableCurrentEntryPausing();
-      this._currentEntryRefresh = setInterval(() => {
-        this.updateCurrentEntryTimer();
-      }, TIMER_UPDATE_INTERVAL_MS);
+      this._startTimerRefresh();
       return;
     }
 
-    this.disableDeleteButton();
     this.enableCurrentEntryResuming();
   }
 
@@ -198,6 +198,33 @@ class UserInterface {
   }
 
   /**
+   * Disables resuming of current entry
+   * @private
+   */
+  _disableStopResumeButton() {
+    _el('stop-resume-button').hide();
+    _el('stop-resume-button').native.enabled = false;
+  }
+
+  /**
+   * Disables controls of current entry
+   * @private
+   */
+  _disableCurrentEntryControls() {
+    this._disableStopResumeButton();
+    this.disableDeleteButton();
+  }
+
+  /**
+   * Enables stop resume button
+   * @private
+   */
+  _enableStopResumeButton() {
+    _el('stop-resume-button').show();
+    _el('stop-resume-button').native.enabled = true;
+  }
+
+  /**
    * Stops current entry refresh screen
    * @private
    */
@@ -208,12 +235,22 @@ class UserInterface {
   }
 
   /**
+   * Refreshes timer every second
+   * @private
+   */
+  _startTimerRefresh() {
+    this._currentEntryRefresh = setInterval(() => {
+      this.updateCurrentEntryTimer();
+    }, TIMER_UPDATE_INTERVAL_MS);
+  }
+
+  /**
    * Start track current entry change
    * @private
    */
   _subscribeOnCurrentEntryChange() {
     this._unsubscribeCurrentEntryChange();
-    this._currentEntryChangeSubscription = this.tracking.currentEntryChange.subscribe(() => {
+    this._currentEntryChangeSubscription = this.tracking.currentEntrySubject.subscribe(() => {
       this.onCurrentEntryChange();
     });
   }

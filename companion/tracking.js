@@ -3,6 +3,18 @@ import {gettext} from 'i18n';
 import {debug} from '../common/debug';
 import {Subject} from '../common/observable';
 
+/**
+ * Time entry message.
+ * @typedef {Object} TimeEntryMessage
+ * @property {boolean} cur - Indicates whether this is a current time entry.
+ * @property {boolean} isPlaying - Indicates that transferred entry is now launched.
+ * @property {boolean} bil - Indicates if time entry is billable.
+ * @property {string} color - The hex-color of the project.
+ * @property {number} start - Time stamp of entry start(ms, unix).
+ * @property {string} projectName - The name of the project time entry attached to.
+ * @property {string} desc - Description of time entry to be displayed(up to 64 char).
+ */
+
 const NO_PROJECT_COLOR = '#a0a0a0';
 
 const ENTRIES_REFRESH_INTERVAL = 15000;
@@ -16,7 +28,7 @@ const NO_PROJECT_INFO = {
 
 const EMPTY_TIME_ENTRY = {
   desc: gettext('no_description'),
-  billable: false,
+  bil: false,
   ...NO_PROJECT_INFO,
 };
 
@@ -32,6 +44,32 @@ const optimiseStringForDisplaying = (input) => {
     return input.slice(0, OPTIMAL_TEXTS_LENGTH - 3) + '...';
   }
   return input;
+};
+
+export const timeEntryDetails = (timeEntry, project) => {
+  if (!timeEntry) {
+    return EMPTY_TIME_ENTRY;
+  }
+
+  const start = Date.parse(timeEntry.start);
+
+  const isPlaying = !timeEntry.stop;
+
+  const desc = optimiseStringForDisplaying(timeEntry.description) || gettext('no_description');
+
+  const projectInfo = project && {
+    color: project.color,
+    projectName: optimiseStringForDisplaying(project.name),
+  } || NO_PROJECT_INFO;
+
+  return {
+    id: timeEntry.id,
+    bil: timeEntry.billable,
+    isPlaying,
+    desc,
+    start,
+    ...projectInfo,
+  };
 };
 
 /**
@@ -66,7 +104,7 @@ class Tracking {
   _subscribeCurrentEntry() {
     this._currentEntry.subscribe(() => {
       this._transmitter.sendMessage({
-        type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
+        type: MESSAGE_TYPE.TIME_ENTRY_DETAILS,
         data: this._currentEntryMessage,
       });
     }, {immediate: true});
@@ -141,35 +179,28 @@ class Tracking {
    * @private
    */
   _attachCommandsProcessing() {
-    this._transmitter.onMessage(MESSAGE_TYPE.STOP_CURRENT_ENTRY, async ({stop, id}) => {
-      this.currentEntry = {
-        ...this.currentEntry,
-        stop: new Date(stop).toISOString(),
-      };
-
+    // TODO: extract processing functions to methods
+    this._transmitter.onMessage(MESSAGE_TYPE.STOP_TIME_ENTRY, async ({stop, id}) => {
       if (id === this.currentEntryId) {
-        await this._api.updateTimeEntry(this.currentEntry);
+        this.currentEntry = await this._api.updateTimeEntry({
+          ...this.currentEntry,
+          stop: new Date(stop).toISOString(),
+        });
       }
-
-      await this._launchEntriesRefreshing();
     });
 
-    this._transmitter.onMessage(MESSAGE_TYPE.RESUME_LAST_ENTRY, async ({start, id}) => {
-      this.currentEntry = {
-        wid: this.user && this.user.default_workspace_id,
-        ...this.currentEntry,
-        stop: null,
-        start: new Date(start).toISOString(),
-      };
-
+    this._transmitter.onMessage(MESSAGE_TYPE.START_TIME_ENTRY, async ({start, id}) => {
       if (id === this.currentEntryId) {
-        await this._api.createTimeEntry(this.currentEntry);
+        this.currentEntry = await this._api.createTimeEntry({
+          wid: this.user && this.user.default_workspace_id,
+          ...this.currentEntry,
+          stop: null,
+          start: new Date(start).toISOString(),
+        });
       }
-
-      await this._launchEntriesRefreshing();
     });
 
-    this._transmitter.onMessage(MESSAGE_TYPE.DELETE_CURRENT_ENTRY, async ({id}) => {
+    this._transmitter.onMessage(MESSAGE_TYPE.DELETE_TIME_ENTRY, async ({id}) => {
       if (id === this.currentEntryId) {
         await this._api.deleteTimeEntry(this.currentEntry);
       }
@@ -231,46 +262,14 @@ class Tracking {
 
   /**
    * Getter for current entry info to be transferred to the device
-   * @return {{id: *, billable: boolean, desc: string}}
+   * @return {TimeEntryMessage} message of time entry
    * @private
    */
   get _currentEntryMessage() {
-    if (!this.currentEntry) {
-      return EMPTY_TIME_ENTRY;
-    }
-
-    const start = this._currentEntryStartTimestamp;
-
-    const desc = optimiseStringForDisplaying(this.currentEntry.description) || gettext('no_description');
-
     return {
-      id: this.currentEntryId,
-      billable: this.currentEntry.billable,
-      desc,
-      ...(start ? {start} : {}),
-      ...this._currentEntryMessageProjectInfo,
+      ...timeEntryDetails(this.currentEntry, this._currentEntryProject),
+      cur: true,
     };
-  }
-
-  /**
-   * Returns time in milliseconds from entry start in case if entry still running
-   * @return {boolean|number}
-   * @private
-   */
-  get _currentEntryStartTimestamp() {
-    return !this.currentEntry.stop && Date.parse(this.currentEntry.start);
-  }
-
-  /**
-   * Returns information about the project needs to be transported to the device
-   * @return {*|{color: *, projectName: string}|{color: string, projectName: *}}
-   * @private
-   */
-  get _currentEntryMessageProjectInfo() {
-    return this._currentEntryProject && {
-      color: this._currentEntryProject.color,
-      projectName: optimiseStringForDisplaying(this._currentEntryProject.name),
-    } || NO_PROJECT_INFO;
   }
 
   /**
@@ -279,7 +278,7 @@ class Tracking {
    * @private
    */
   get _currentEntryProject() {
-    return this.projects.find(({id}) => id === this.currentEntry.pid);
+    return (this.projects || []).find(({id}) => this.currentEntry && id === this.currentEntry.pid);
   }
 }
 

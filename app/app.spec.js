@@ -2,7 +2,6 @@ import {_resetSystem, memory} from 'system';
 import {DEVICE_QUEUE_SIZE, Transmitter} from '../common/transmitter';
 import {Tracking} from './tracking';
 import {MESSAGE_TYPE} from '../common/message-types';
-import {timeEntryBody} from '../utils/factories/time-entries';
 import {App} from './app';
 import {UserInterface} from './ui';
 
@@ -18,6 +17,7 @@ describe('Application module', () => {
   });
 
   afterEach(() => {
+    App._instance = null;
     console.log.mockRestore();
   });
 
@@ -64,7 +64,7 @@ describe('Application module', () => {
     it('should show stats on pressure change', () => {
       const initialExpectedStats = `Memory: ${JSON.stringify(memory.js)}`;
 
-      App.instance;
+      expect(App.instance).toBeDefined();
 
       const monitorSubscriber = memory.monitor._onmemorypressurechangeHandler;
 
@@ -91,31 +91,8 @@ describe('Application module', () => {
   });
 
   describe('incoming messages processing', () => {
-    let tracking;
-
     beforeEach(() => {
-      tracking = App.instance.tracking;
-    });
-
-    describe('when message with type CURRENT_ENTRY_UPDATE received', () => {
-      let currentEntry;
-
-      const triggerMessageReceived = (data) => {
-        Transmitter.emitMessageReceived(MESSAGE_TYPE.CURRENT_ENTRY_UPDATE, data);
-      };
-
-      beforeEach(() => {
-        currentEntry = timeEntryBody();
-      });
-
-      it('should call tracking.currentEntryUpdated with entry params', () => {
-        expect(tracking.currentEntryUpdated).not.toHaveBeenCalled();
-
-        triggerMessageReceived(currentEntry);
-
-        expect(tracking.currentEntryUpdated).toHaveBeenCalledTimes(1);
-        expect(tracking.currentEntryUpdated).toHaveBeenLastCalledWith(currentEntry);
-      });
+      App.instance;
     });
 
     describe('when message with type API_TOKEN_STATUS_UPDATE received', () => {
@@ -127,7 +104,6 @@ describe('Application module', () => {
         expect(App.instance.ui.showConfigurationRequired).not.toHaveBeenCalled();
         expect(App.instance.ui.hideConfigurationRequired).not.toHaveBeenCalled();
       });
-
 
       describe('and data contains {configured: false}', () => {
         it('should call ui.showConfigurationRequired', () => {

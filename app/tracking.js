@@ -1,5 +1,5 @@
-import { MESSAGE_TYPE } from '../common/message-types';
-import { Subject } from '../common/observable';
+import {MESSAGE_TYPE} from '../common/message-types';
+import {Subject} from '../common/observable';
 
 /**
  * This module is responsible for tracking and works in pair with companion's tracking module.
@@ -9,9 +9,27 @@ class Tracking {
    * Definition of initial values and properties
    */
   constructor({transmitter}) {
-    this.currentEntryChange = new Subject();
+    this.currentEntrySubject = new Subject(null);
+    this.entriesLogSubject = new Subject([]);
     this._transmitter = transmitter;
-    this.currentEntry = null;
+    this._subscribeOnEntryReceived();
+    this._subscribeOnLogUpdate();
+  }
+
+  /**
+   * Updates current entry
+   * @param {TimeEntryMessage|null} updatedEntry
+   */
+  set currentEntry(updatedEntry) {
+    this.currentEntrySubject.next(updatedEntry);
+  }
+
+  /**
+   * Returns current entry value
+   * @return {Object|null}
+   */
+  get currentEntry() {
+    return this.currentEntrySubject.value;
   }
 
   /**
@@ -20,7 +38,6 @@ class Tracking {
    */
   currentEntryUpdated(entry) {
     this.currentEntry = entry;
-    this.currentEntryChange.next(entry);
   }
 
   /**
@@ -28,12 +45,12 @@ class Tracking {
    */
   deleteCurrentEntry() {
     this._transmitter.sendMessage({
-      type: MESSAGE_TYPE.DELETE_CURRENT_ENTRY,
+      type: MESSAGE_TYPE.DELETE_TIME_ENTRY,
       data: {
         id: this.currentEntry.id,
       },
     });
-    this.currentEntryUpdated(null);
+    this.currentEntry = null;
   }
 
   /**
@@ -41,13 +58,14 @@ class Tracking {
    */
   resumeCurrentEntry() {
     this._transmitter.sendMessage({
-      type: MESSAGE_TYPE.RESUME_LAST_ENTRY,
+      type: MESSAGE_TYPE.START_TIME_ENTRY,
       data: {
         id: this.currentEntry.id,
         start: Date.now(),
       },
     });
-    this.currentEntryUpdated({...this.currentEntry, start: Date.now()});
+
+    this.currentEntry = {...this.currentEntry, start: Date.now(), isPlaying: true};
   }
 
   /**
@@ -55,13 +73,35 @@ class Tracking {
    */
   stopCurrentEntry() {
     this._transmitter.sendMessage({
-      type: MESSAGE_TYPE.STOP_CURRENT_ENTRY,
+      type: MESSAGE_TYPE.STOP_TIME_ENTRY,
       data: {
         id: this.currentEntry.id,
         stop: Date.now(),
       },
     });
-    this.currentEntryUpdated({...this.currentEntry, start: undefined});
+    this.currentEntry = {...this.currentEntry, isPlaying: false};
+  }
+
+  /**
+   * Emits log subject on update
+   * @private
+   */
+  _subscribeOnLogUpdate() {
+    this._transmitter.onMessage(MESSAGE_TYPE.ENTRIES_LOG_UPDATE, (logIds) => {
+      this.entriesLogSubject.next(logIds);
+    });
+  }
+
+  /**
+   * Reacts on entry update
+   * @private
+   */
+  _subscribeOnEntryReceived() {
+    this._transmitter.onMessage(MESSAGE_TYPE.TIME_ENTRY_DETAILS, (entry) => {
+      if (entry.cur) {
+        this.currentEntry = entry;
+      }
+    });
   }
 }
 

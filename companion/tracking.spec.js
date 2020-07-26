@@ -59,7 +59,7 @@ describe('Tracking', () => {
       beforeEach(() => {
         stop = Date.now();
 
-        Transmitter.emitMessageReceived(MESSAGE_TYPE.STOP_CURRENT_ENTRY, {
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.STOP_TIME_ENTRY, {
           id: currentEntry.id,
           stop,
         });
@@ -74,13 +74,11 @@ describe('Tracking', () => {
         }));
       });
 
-      assertRefreshesCurrentEntry();
-
       describe('when id from message does not match current', () => {
         beforeEach(async () => {
           api.updateTimeEntry.mockClear();
 
-          Transmitter.emitMessageReceived(MESSAGE_TYPE.STOP_CURRENT_ENTRY, {
+          Transmitter.emitMessageReceived(MESSAGE_TYPE.STOP_TIME_ENTRY, {
             id: faker.random.number(),
             stop,
           });
@@ -100,7 +98,7 @@ describe('Tracking', () => {
       beforeEach(() => {
         start = Date.now();
 
-        Transmitter.emitMessageReceived(MESSAGE_TYPE.RESUME_LAST_ENTRY, {
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.START_TIME_ENTRY, {
           id: currentEntry.id,
           start,
         });
@@ -116,8 +114,6 @@ describe('Tracking', () => {
         }));
       });
 
-      assertRefreshesCurrentEntry();
-
       describe('when there is no current entry', () => {
         let wid;
 
@@ -130,7 +126,7 @@ describe('Tracking', () => {
           await tracking.initialize();
           await flushPromises();
 
-          Transmitter.emitMessageReceived(MESSAGE_TYPE.RESUME_LAST_ENTRY, {
+          Transmitter.emitMessageReceived(MESSAGE_TYPE.START_TIME_ENTRY, {
             start,
           });
 
@@ -150,7 +146,7 @@ describe('Tracking', () => {
         beforeEach(async () => {
           api.createTimeEntry.mockClear();
 
-          Transmitter.emitMessageReceived(MESSAGE_TYPE.RESUME_LAST_ENTRY, {
+          Transmitter.emitMessageReceived(MESSAGE_TYPE.START_TIME_ENTRY, {
             id: faker.random.number(),
             start,
           });
@@ -166,7 +162,7 @@ describe('Tracking', () => {
 
     describe('delete current entry', () => {
       beforeEach(() => {
-        Transmitter.emitMessageReceived(MESSAGE_TYPE.DELETE_CURRENT_ENTRY, {
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.DELETE_TIME_ENTRY, {
           id: currentEntry.id,
         });
       });
@@ -185,7 +181,7 @@ describe('Tracking', () => {
         beforeEach(async () => {
           api.deleteTimeEntry.mockClear();
 
-          Transmitter.emitMessageReceived(MESSAGE_TYPE.DELETE_CURRENT_ENTRY, {
+          Transmitter.emitMessageReceived(MESSAGE_TYPE.DELETE_TIME_ENTRY, {
             id: faker.random.number(),
           });
 
@@ -223,7 +219,7 @@ describe('Tracking', () => {
         });
         lastTimeEntry = timeEntryBody({
           description: _.times(OPTIMAL_TEXTS_LENGTH, () => 'BumBada').join(''),
-          stop: '2020-05-08T13:41:09Z',
+          isPlaying: false,
           pid: currentEntryProject.id,
         });
 
@@ -248,11 +244,12 @@ describe('Tracking', () => {
           id: currentEntry.id,
           desc: currentEntry.description,
           start: Date.parse(currentEntry.start),
-          billable: currentEntry.billable,
+          isPlaying: true,
+          bil: currentEntry.billable,
         });
 
         expect(Transmitter.instanceSendMessage).toHaveBeenCalledWith({
-          type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
+          type: MESSAGE_TYPE.TIME_ENTRY_DETAILS,
           data: expectedData,
         });
       });
@@ -288,13 +285,14 @@ describe('Tracking', () => {
 
         const expectedData = expect.objectContaining({
           id: currentEntry.id,
+          cur: true,
           desc: currentEntry.description,
           start: Date.parse(currentEntry.start),
-          billable: currentEntry.billable,
+          bil: currentEntry.billable,
         });
 
         expect(Transmitter.instanceSendMessage).toHaveBeenCalledWith({
-          type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
+          type: MESSAGE_TYPE.TIME_ENTRY_DETAILS,
           data: expectedData,
         });
       });
@@ -329,17 +327,17 @@ describe('Tracking', () => {
 
         describe('when entries present', () => {
           it('should send the first of them', async () => {
-
             expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
-              data: expect.not.objectContaining({start: expect.anything()}),
+              data: expect.objectContaining({isPlaying: false, start: Date.parse(lastTimeEntry.start)}),
             }));
 
             expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
-              type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
+              type: MESSAGE_TYPE.TIME_ENTRY_DETAILS,
               data: expect.objectContaining({
                 id: lastTimeEntry.id,
+                cur: true,
                 desc: expect.stringContaining(lastTimeEntry.description.slice(0, 50)),
-                billable: lastTimeEntry.billable,
+                bil: lastTimeEntry.billable,
               }),
             });
           });
@@ -353,12 +351,20 @@ describe('Tracking', () => {
             await tracking.initialize();
           });
 
+          it('should transmit empty time entries log', () => {
+            expect(Transmitter.instanceSendMessage).toHaveBeenCalledWith({
+              type: MESSAGE_TYPE.ENTRIES_LOG_UPDATE,
+              data: [],
+            });
+          });
+
           it('should send update with default current entry', async () => {
             expect(Transmitter.instanceSendMessage).toHaveBeenCalledWith({
-              type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE,
+              type: MESSAGE_TYPE.TIME_ENTRY_DETAILS,
               data: {
                 desc: gettext('no_description'),
-                billable: false,
+                cur: true,
+                bil: false,
                 ...NO_PROJECT_INFO,
               },
             });

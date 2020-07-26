@@ -73,7 +73,7 @@ describe('Transmitter', () => {
       const currentEntryPayload = timeEntryBody({});
 
       transmitter.onMessage(MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE, apiTokenHandler);
-      transmitter.onMessage(MESSAGE_TYPE.CURRENT_ENTRY_UPDATE, currentEntryHandler);
+      transmitter.onMessage(MESSAGE_TYPE.TIME_ENTRY_DETAILS, currentEntryHandler);
 
       expect(apiTokenHandler).not.toHaveBeenCalled();
 
@@ -83,7 +83,7 @@ describe('Transmitter', () => {
       expect(apiTokenHandler).toHaveBeenCalledWith(apiTokenUpdatePayload);
       expect(currentEntryHandler).not.toHaveBeenCalled();
 
-      peerSocket._onmessageHandler({data: {type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE, data: currentEntryPayload}});
+      peerSocket._onmessageHandler({data: {type: MESSAGE_TYPE.TIME_ENTRY_DETAILS, data: currentEntryPayload}});
 
       expect(apiTokenHandler).toHaveBeenCalledTimes(1);
       expect(currentEntryHandler).toHaveBeenCalledTimes(1);
