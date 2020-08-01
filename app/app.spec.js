@@ -44,7 +44,7 @@ describe('Application module', () => {
     it('should create tracking instance with transmitter', () => {
       expect(Tracking).not.toHaveBeenCalled();
 
-      expect(App.instance.tracking).toHaveProperty('currentEntryUpdated');
+      expect(App.instance.tracking).toBeInstanceOf(Tracking);
 
       expect(Tracking).toHaveBeenCalledTimes(1);
       expect(Tracking).toHaveBeenLastCalledWith({transmitter: App.instance.transmitter});

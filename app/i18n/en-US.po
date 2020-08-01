@@ -3,3 +3,11 @@ msgstr "Setting is needed!"
 
 msgid "token_config_required_body"
 msgstr "Visit FitBit Application > Apps > Toggl > Settings and setup required config."
+
+
+msgid "log_description_loading"
+msgstr "Loading..."
+
+msgid "log_project_loading"
+msgstr "Please wait"
+

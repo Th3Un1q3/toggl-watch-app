@@ -17,6 +17,9 @@ class ElementWrapper {
    * @param {string} newText
    */
   set text(newText) {
+    if (this._el.text === newText) {
+      return;
+    }
     this._el.text = newText;
   }
 
@@ -57,6 +60,9 @@ class ElementWrapper {
    * @param {string} className
    */
   addClass(className) {
+    if (this._classList.includes(className)) {
+      return;
+    }
     this._el.class = [...this._classList, className].filter((c) => !!c)
         .join(' ');
   }
@@ -66,22 +72,33 @@ class ElementWrapper {
    * @param {string} className
    */
   removeClass(className) {
-    this._el.class = this._classList.filter((existingClassName) => existingClassName !== className)
+    const newClassList = this._classList.filter((existingClassName) => existingClassName !== className)
         .join(' ');
+    if (newClassList !== this._el.class) {
+      this._el.class = newClassList;
+    }
   }
 
   /**
    * Makes element visible
    */
   show() {
-    this._el.style.display = 'inline';
+    const displayed = 'inline';
+    if (this._el.style.display === displayed) {
+      return;
+    }
+    this._el.style.display = displayed;
   }
 
   /**
    * Hides wrapped element
    */
   hide() {
-    this._el.style.display = 'none';
+    const hidden = 'none';
+    if (this._el.style.display === hidden) {
+      return;
+    }
+    this._el.style.display = hidden;
   }
 
   /**
@@ -96,10 +113,11 @@ class ElementWrapper {
   /**
    * Returns wrapped element with id;
    * @param {string} id
+   * @param {Document} parent
    * @return {*|ElementWrapper}
    */
-  static byId(id) {
-    return new ElementWrapper(document.getElementById(id));
+  static byId(id, parent = document) {
+    return new ElementWrapper(parent.getElementById(id));
   }
 }
 

@@ -3,7 +3,7 @@ const defaultCompare = (value1, value2) => {
 };
 
 /**
- * Subscription object
+ * Subscription object, helps to manage subscription
  */
 class Subscription {
   /**
@@ -23,7 +23,7 @@ class Subscription {
 }
 
 /**
- * Subject of observation
+ * Subject of the observation
  */
 class Subject {
   /**
@@ -32,13 +32,36 @@ class Subject {
    * @param {boolean|function} changeOnly - Defines if only dispatch a change if the value is changed
    */
   constructor(value, {changeOnly = false} = {}) {
-    this.value = value;
+    this._value = value;
     this.isMatch = (changeOnly && defaultCompare) || (() => false);
     if (typeof changeOnly === 'function') {
       this.isMatch = changeOnly;
     }
-    this._changeOnly = changeOnly;
     this._subscriptions = [];
+  }
+
+  /**
+   * Returns a list of helpers
+   * @return {*[]}
+   */
+  get handlers() {
+    return this._subscriptions.map(([_subscription, handler]) => handler);
+  }
+
+  /**
+   * indicates if there is any subscriptions to subject
+   * @return {boolean}
+   */
+  get hasSubscriptions() {
+    return !!this._subscriptions.length;
+  }
+
+  /**
+   * Returns current subject value
+   * @return {*}
+   */
+  get value() {
+    return this._value;
   }
 
   /**
@@ -50,16 +73,8 @@ class Subject {
       return;
     }
 
-    this.value = newValue;
-    this._dispatchHandlers();
-  }
-
-  /**
-   * Dispatches current value to subscribers
-   * @private
-   */
-  _dispatchHandlers() {
-    this.handlers.forEach(this.dispatchHandler.bind(this));
+    this._value = newValue;
+    this._dispatchAllHandlers();
   }
 
   /**
@@ -100,19 +115,11 @@ class Subject {
   }
 
   /**
-   * indicates if there is any subscriptions to subject
-   * @return {boolean}
+   * Dispatches current value to subscribers
+   * @private
    */
-  get hasSubscriptions() {
-    return !!this._subscriptions.length;
-  }
-
-  /**
-   * Returns a list of helpers
-   * @return {*[]}
-   */
-  get handlers() {
-    return this._subscriptions.map(([_subscription, handler]) => handler);
+  _dispatchAllHandlers() {
+    this.handlers.forEach(this.dispatchHandler.bind(this));
   }
 }
 

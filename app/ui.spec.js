@@ -1,10 +1,20 @@
-import document from 'document';
-import {UserInterface, BUTTON_IMAGE, LOADER_STATE, TIMER_UPDATE_INTERVAL_MS} from './ui';
-import {Subject} from '../common/observable';
+import _ from 'lodash';
 import faker from 'faker';
+
+import document from 'document';
+import {
+  UserInterface,
+  BUTTON_IMAGE,
+  LOADER_STATE,
+  TIMER_UPDATE_INTERVAL_MS,
+  EID,
+  LIST_TILE, TIME_ENTRY_HIDDEN_TILE_CLASS, TIME_ENTRY_BILLABLE_CLASS,
+} from './ui';
+import {Subject} from '../common/observable';
 import {timeEntryDetails} from '../companion/tracking';
 import {timeEntryBody} from '../utils/factories/time-entries';
 import {projectBody} from '../utils/factories/projects';
+import {gettext} from 'i18n';
 
 describe('UI module', () => {
   let configurationRequired;
@@ -19,11 +29,12 @@ describe('UI module', () => {
   let uiInstance;
   let tracking;
   let entriesLog;
+  let entryLogTile;
 
   const assertLoaderEnabled = () => {
     it('should make loader state enabled and loader visible', () => {
       expect(loader).toBeVisible();
-      expect(loader.state).toEqual(LOADER_STATE.ENABLED);
+      expect(loader.state).toEqual(LOADER_STATE.Enabled);
     });
   };
 
@@ -52,24 +63,27 @@ describe('UI module', () => {
   };
 
   const initializeAllElements = () => {
-    configurationRequired = document.getElementById('configuration-instruction');
-    loader = document.getElementById('loader');
-    project = document.getElementById('current-entry-project');
-    description = document.getElementById('current-entry-description');
-    hours = document.getElementById('current-entry-timer-hours');
-    minutes = document.getElementById('current-entry-timer-minutes');
-    seconds = document.getElementById('current-entry-timer-seconds');
-    deleteButton = document.getElementById('delete-button');
-    stopResumeButton = document.getElementById('stop-resume-button');
-    entriesLog = document.getElementById('time-entries-list-container');
+    configurationRequired = document.getElementById(EID.ConfigurationInstruction);
+    loader = document.getElementById(EID.Loader);
+    project = document.getElementById(EID.CurrentEntryProject);
+    description = document.getElementById(EID.CurrentEntryDescription);
+    hours = document.getElementById(EID.TimerHours);
+    minutes = document.getElementById(EID.TimerMinutes);
+    seconds = document.getElementById(EID.TimerSeconds);
+    deleteButton = document.getElementById(EID.DeleteButton);
+    stopResumeButton = document.getElementById(EID.StopResumeButton);
+    entriesLog = document.getElementById(EID.LogContainer);
+    entryLogTile = document.getElementById('time-entry[1]');
   };
 
   const initializeUI = () => {
     tracking = {
       currentEntrySubject: new Subject(),
+      entriesLogContentsSubject: new Subject(),
       deleteCurrentEntry: jest.fn(),
       resumeCurrentEntry: jest.fn(),
       stopCurrentEntry: jest.fn(),
+      requestDetails: jest.fn(),
     };
     document._reset();
     uiInstance = new UserInterface({tracking});
@@ -94,6 +108,90 @@ describe('UI module', () => {
 
     describe('if loading takes longer than 10 seconds', () => {
       it.todo('should show check your connection message');
+    });
+  });
+
+  describe('on entriesLogContents update', () => {
+    beforeEach(() => {
+      tracking.entriesLogContents = _.times(_.random(5, 15), faker.random.number);
+    });
+
+    it('should set log.length equal to contents length + one for placeholder', () => {
+      expect(entriesLog.length).not.toBeDefined();
+      tracking.entriesLogContentsSubject.next(tracking.entriesLogContents);
+      expect(entriesLog.length).toEqual(tracking.entriesLogContents.length + 1);
+    });
+
+    describe('list renderer', () => {
+      beforeEach(() => {
+        tracking.entriesLogContentsSubject.next(tracking.entriesLogContents);
+      });
+
+      describe('for first tile(placeholder)', () => {
+        it('should set first log tile to placeholder', () => {
+          expect(entriesLog.delegate.getTileInfo(0).type).toEqual(LIST_TILE.TimeEntry);
+          expect(entriesLog.delegate.getTileInfo(0).isPlaceholder).toBeTruthy();
+        });
+
+        it('should hide a tile', () => {
+          entriesLog.delegate.configureTile(entryLogTile, {isPlaceholder: true, type: LIST_TILE.TimeEntry});
+          expect(entryLogTile.getElementById('wrapper')).toHaveClass(TIME_ENTRY_HIDDEN_TILE_CLASS);
+        });
+      });
+
+      describe('for time entry tile', () => {
+        let entryPlace;
+        let expectedEntryId;
+
+        beforeEach(() => {
+          entryPlace = _.random(1, tracking.entriesLogContents.length);
+          expectedEntryId = tracking.entriesLogContents[entryPlace - 1];
+          entriesLog.delegate.configureTile(entryLogTile, entriesLog.delegate.getTileInfo(entryPlace));
+        });
+
+        it('should not hide a tile', () => {
+          expect(entryLogTile.getElementById('wrapper')).not.toHaveClass(TIME_ENTRY_HIDDEN_TILE_CLASS);
+        });
+
+        it('should set description to "log_description_loading"', () => {
+          expect(entryLogTile.getElementById('description')).toHaveProperty(
+              'text',
+              gettext('log_description_loading'),
+          );
+        });
+
+        it('should set project to "log_project_loading"', () => {
+          expect(entryLogTile.getElementById('project')).toHaveProperty(
+              'text',
+              gettext('log_project_loading'),
+          );
+        });
+
+        it('should set duration to "--:--"', () => {
+          expect(entryLogTile.getElementById('duration')).toHaveProperty(
+              'text',
+              '--:--',
+          );
+        });
+
+        it('should mark billable indicator as not billable', () => {
+          expect(entryLogTile.getElementById('billable')).not.toHaveClass(TIME_ENTRY_BILLABLE_CLASS);
+        });
+
+        it('should set entries tile info', () => {
+          expect(entriesLog.delegate.getTileInfo(entryPlace).type).toEqual(LIST_TILE.TimeEntry);
+          expect(entriesLog.delegate.getTileInfo(entryPlace).isPlaceholder).toBeFalsy();
+          expect(entriesLog.delegate.getTileInfo(entryPlace).id).toEqual(expectedEntryId);
+        });
+
+        it('should call tracker.requestDetails', () => {
+          expect(tracking.requestDetails).toHaveBeenCalledTimes(1);
+          expect(tracking.requestDetails).toHaveBeenLastCalledWith({
+            entryId: expectedEntryId,
+            displayedIn: entryLogTile.id,
+          })
+        });
+      });
     });
   });
 
@@ -155,9 +253,9 @@ describe('UI module', () => {
       });
 
       it('should set active class to seconds', () => {
-        expect(hours.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
-        expect(minutes.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
-        expect(seconds.class).toEqual(expect.stringContaining(timeSectionActiveClass));
+        expect(hours).not.toHaveClass(timeSectionActiveClass);
+        expect(minutes).not.toHaveClass(timeSectionActiveClass);
+        expect(seconds).toHaveClass(timeSectionActiveClass);
       });
 
 
@@ -167,10 +265,10 @@ describe('UI module', () => {
       it('should set button image to play', () => {
         expect(stopResumeButton).toBeVisible();
         expect(stopResumeButton.getElementById('combo-button-icon-press').href).toEqual(
-            BUTTON_IMAGE.PLAY_PRESS,
+            BUTTON_IMAGE.PlayPress,
         );
         expect(stopResumeButton.getElementById('combo-button-icon').href).toEqual(
-            BUTTON_IMAGE.PLAY,
+            BUTTON_IMAGE.Play,
         );
       });
 
@@ -232,9 +330,9 @@ describe('UI module', () => {
           });
 
           it('should add active class to minutes', () => {
-            expect(hours.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
-            expect(minutes.class).toEqual(expect.stringContaining(timeSectionActiveClass));
-            expect(seconds.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+            expect(hours).not.toHaveClass(timeSectionActiveClass);
+            expect(minutes).toHaveClass(timeSectionActiveClass);
+            expect(seconds).not.toHaveClass(timeSectionActiveClass);
           });
         });
 
@@ -256,9 +354,9 @@ describe('UI module', () => {
           });
 
           it('should mark hours section as active', () => {
-            expect(hours.class).toEqual(expect.stringContaining(timeSectionActiveClass));
-            expect(minutes.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
-            expect(seconds.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
+            expect(hours).toHaveClass(timeSectionActiveClass);
+            expect(minutes).not.toHaveClass(timeSectionActiveClass);
+            expect(seconds).not.toHaveClass(timeSectionActiveClass);
           });
         });
 
@@ -278,9 +376,9 @@ describe('UI module', () => {
           });
 
           it('should mark seconds section as active', () => {
-            expect(hours.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
-            expect(minutes.class).toEqual(expect.not.stringContaining(timeSectionActiveClass));
-            expect(seconds.class).toEqual(expect.stringContaining(timeSectionActiveClass));
+            expect(hours).not.toHaveClass(timeSectionActiveClass);
+            expect(minutes).not.toHaveClass(timeSectionActiveClass);
+            expect(seconds).toHaveClass(timeSectionActiveClass);
           });
         });
       });
@@ -302,10 +400,10 @@ describe('UI module', () => {
         it('should make stopResume button in stop mode', () => {
           expect(stopResumeButton).toBeVisible();
           expect(stopResumeButton.getElementById('combo-button-icon-press').href).toEqual(
-              BUTTON_IMAGE.PAUSE_PRESS,
+              BUTTON_IMAGE.PausePress,
           );
           expect(stopResumeButton.getElementById('combo-button-icon').href).toEqual(
-              BUTTON_IMAGE.PAUSE,
+              BUTTON_IMAGE.Pause,
           );
         });
 

@@ -12,7 +12,7 @@
           <text id="project" class="item__project">------------------------------------</text>
           <section class="item__entry-properties">
             <text id="billable" class="item__billing">$</text>
-            <text id="billable" class="entry-properties__separator">•</text>
+            <text class="entry-properties__separator">•</text>
 
             <text id="duration" class="item__duration">00:33</text>
 
@@ -29,9 +29,9 @@
         <var id="separator-height-bottom" value="2" />
 
         <use id="time-entry" href="#tile-list-pool">
-          <use id="time-entry[0]" href="#time-entry-item" class="time-entry-list__item time-entry-list__item--empty" />
-          <use id="time-entry[1]" href="#time-entry-item" class="time-entry-list__item time-entry-list__item--empty" />
-          <use id="time-entry[2]" href="#time-entry-item" class="time-entry-list__item time-entry-list__item--empty" />
+          <use id="time-entry[0]" href="#time-entry-item" class="time-entry-list__item" />
+          <use id="time-entry[1]" href="#time-entry-item" class="time-entry-list__item" />
+          <use id="time-entry[2]" href="#time-entry-item" class="time-entry-list__item" />
           <use id="time-entry[3]" href="#time-entry-item" class="time-entry-list__item" />
           <use id="time-entry[4]" href="#time-entry-item" class="time-entry-list__item" />
           <use id="time-entry[5]" href="#time-entry-item" class="time-entry-list__item" />

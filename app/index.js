@@ -1,27 +1,25 @@
+import './polyfills';
+
 import {App} from './app';
-
-App.instance.ui; // TODO: add a test for start
-
+// import {ElementWrapper} from './ui/document-helper';
 // import document from 'document';
 
-// import {ElementWrapper} from './document-facade';
 
-// TODO: replace experiment below when it's complete
+// // TODO: replace experiment below when it's complete
 // const VTList = document.getElementById('time-entries-list-container');
-//
-// const NUM_ELEMS = 30;
-//
+// //
+// // const NUM_ELEMS = 30;
+// //
 // VTList.delegate = {
 //   getTileInfo(index) {
 //     console.log('getTileInfo', index);
 //     return {
 //       type: 'time-entry',
 //       value: 'Menu item',
-//       index: index,
 //     };
 //   },
 //   configureTile(tile, info) {
-//     if (info.type == 'time-entry') {
+//     if (info.type === 'time-entry') {
 //       const wrapper = new ElementWrapper(tile.getElementById('wrapper'));
 //       const background = new ElementWrapper(tile.getElementById('background'));
 //       wrapper.removeClass('item-wrapper--hidden');
@@ -45,3 +43,5 @@ App.instance.ui; // TODO: add a test for start
 // };
 //
 // VTList.length = NUM_ELEMS;
+
+App.instance.ui; // TODO: add a test for start

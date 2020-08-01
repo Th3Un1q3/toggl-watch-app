@@ -23,7 +23,7 @@ describe('Tracking on device', () => {
     transmitter = new Transmitter();
     tracking = new Tracking({transmitter});
     subscriptions.push(tracking.currentEntrySubject.subscribe(entryUpdated));
-    subscriptions.push(tracking.entriesLogSubject.subscribe(entriesLogUpdated));
+    subscriptions.push(tracking.entriesLogContentsSubject.subscribe(entriesLogUpdated));
     currentEntry = timeEntryBody();
     jest.spyOn(Date, 'now').mockReturnValue(now);
   });
@@ -38,7 +38,7 @@ describe('Tracking on device', () => {
 
   describe('.deleteCurrentEntry', () => {
     beforeEach(() => {
-      tracking.currentEntryUpdated(currentEntry);
+      tracking.currentEntry = currentEntry;
       tracking.deleteCurrentEntry();
     });
 
@@ -65,7 +65,7 @@ describe('Tracking on device', () => {
 
   describe('.resumeCurrentEntry', () => {
     beforeEach(() => {
-      tracking.currentEntryUpdated(currentEntry);
+      tracking.currentEntry = currentEntry;
       tracking.resumeCurrentEntry();
     });
 
@@ -95,7 +95,7 @@ describe('Tracking on device', () => {
 
   describe('.stopCurrentEntry', () => {
     beforeEach(() => {
-      tracking.currentEntryUpdated(currentEntry);
+      tracking.currentEntry = currentEntry;
       tracking.stopCurrentEntry();
     });
 
@@ -123,21 +123,23 @@ describe('Tracking on device', () => {
   });
 
   describe('when message with type ENTRIES_LOG_UPDATE received', () => {
-    let logOverview;
+    let logContents;
 
     const triggerMessageReceived = (data) => {
       Transmitter.emitMessageReceived(MESSAGE_TYPE.ENTRIES_LOG_UPDATE, data);
     };
 
     beforeEach(() => {
-      logOverview = _.times(10, faker.random.number);
+      logContents = _.times(10, faker.random.number);
     });
 
     it('should emit log update', () => {
       expect(entriesLogUpdated).not.toHaveBeenCalled();
-      triggerMessageReceived(logOverview);
+      triggerMessageReceived(logContents);
 
-      expect(entriesLogUpdated).toHaveBeenCalledWith(logOverview);
+      expect(tracking.entriesLogContents).toEqual(logContents);
+
+      expect(entriesLogUpdated).toHaveBeenCalledWith(logContents);
       expect(entriesLogUpdated).toHaveBeenCalledTimes(1);
     });
   });

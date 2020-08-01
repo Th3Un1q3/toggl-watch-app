@@ -7,10 +7,11 @@ import {Subject} from '../common/observable';
 class Tracking {
   /**
    * Definition of initial values and properties
+   * @param {Transmitter} messages transmitter instance
    */
   constructor({transmitter}) {
     this.currentEntrySubject = new Subject(null);
-    this.entriesLogSubject = new Subject([]);
+    this.entriesLogContentsSubject = new Subject([]);
     this._transmitter = transmitter;
     this._subscribeOnEntryReceived();
     this._subscribeOnLogUpdate();
@@ -26,18 +27,26 @@ class Tracking {
 
   /**
    * Returns current entry value
-   * @return {Object|null}
+   * @return {TimeEntryMessage|null}
    */
   get currentEntry() {
     return this.currentEntrySubject.value;
   }
 
   /**
-   * Makes everything required when current entry is updated
-   * @param {Object} entry
+   * Updates contents of entries log
+   * @param {number[]} logContents
    */
-  currentEntryUpdated(entry) {
-    this.currentEntry = entry;
+  set entriesLogContents(logContents) {
+    this.entriesLogContentsSubject.next(logContents);
+  }
+
+  /**
+   * Returns contents of entries log(a list of ids)
+   * @return {number[]}
+   */
+  get entriesLogContents() {
+    return this.entriesLogContentsSubject.value;
   }
 
   /**
@@ -51,6 +60,15 @@ class Tracking {
       },
     });
     this.currentEntry = null;
+  }
+
+  /**
+   * Requests time entries details
+   * @param {number} entryId
+   * @param {*} meta
+   */
+  requestDetails({entryId, ...meta}) {
+    // TODO: not request if in details list
   }
 
   /**
@@ -88,7 +106,7 @@ class Tracking {
    */
   _subscribeOnLogUpdate() {
     this._transmitter.onMessage(MESSAGE_TYPE.ENTRIES_LOG_UPDATE, (logIds) => {
-      this.entriesLogSubject.next(logIds);
+      this.entriesLogContents = logIds;
     });
   }
 
