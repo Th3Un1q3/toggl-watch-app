@@ -1,3 +1,5 @@
+import cbor from 'cbor';
+
 const defaultCompare = (value1, value2) => {
   return value1 && (value1 === value2 || JSON.stringify(value1) === JSON.stringify(value2));
 };
@@ -32,7 +34,7 @@ class Subject {
    * @param {boolean|function} changeOnly - Defines if only dispatch a change if the value is changed
    */
   constructor(value, {changeOnly = false} = {}) {
-    this._value = value;
+    this.value = value;
     this.isMatch = (changeOnly && defaultCompare) || (() => false);
     if (typeof changeOnly === 'function') {
       this.isMatch = changeOnly;
@@ -61,7 +63,15 @@ class Subject {
    * @return {*}
    */
   get value() {
-    return this._value;
+    return cbor.decode(this._value);
+  }
+
+  /**
+   * Updates current value
+   * @param {*} newValue
+   */
+  set value(newValue) {
+    this._value = cbor.encode(newValue);
   }
 
   /**
@@ -73,7 +83,7 @@ class Subject {
       return;
     }
 
-    this._value = newValue;
+    this.value = newValue;
     this._dispatchAllHandlers();
   }
 

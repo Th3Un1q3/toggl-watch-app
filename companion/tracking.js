@@ -46,12 +46,13 @@ const optimiseStringForDisplaying = (input) => {
   return input;
 };
 
-export const timeEntryDetails = (timeEntry, project) => {
+const timeEntryDetails = (timeEntry, project) => {
   if (!timeEntry) {
     return EMPTY_TIME_ENTRY;
   }
 
   const start = Date.parse(timeEntry.start);
+  const stop = timeEntry.stop ? {stop: Date.parse(timeEntry.start)} : {};
 
   const isPlaying = !timeEntry.stop;
 
@@ -68,9 +69,15 @@ export const timeEntryDetails = (timeEntry, project) => {
     isPlaying,
     desc,
     start,
+    stop,
     ...projectInfo,
   };
 };
+
+const turnIntoIndexedList = (entries, primaryKey) => Object.assign(
+    {},
+    ...(entries || []).map((timeEntry) => ({[timeEntry[primaryKey]]: timeEntry})),
+);
 
 /**
  * The module is responsible for time tracking process
@@ -83,14 +90,14 @@ class Tracking {
    */
   constructor({api, transmitter}) {
     this._api = api;
-    this._transmitter = transmitter;
+    this.transmitter = transmitter;
     this._synchronisationInterval = null;
     this.user = null;
     this._currentEntry = new Subject(null, {
       changeOnly: isEntryTheSame,
     });
-    this._timeEntriesLog = new Subject([], {changeOnly: true});
-    this.projects = [];
+    this._timeEntriesLog = new Subject({}, {changeOnly: true});
+    this.projects = {};
     this._subscribeCurrentEntry();
     this._subscribeEntriesLog();
     this._attachCommandsProcessing();
@@ -103,10 +110,7 @@ class Tracking {
    */
   _subscribeCurrentEntry() {
     this._currentEntry.subscribe(() => {
-      this._transmitter.sendMessage({
-        type: MESSAGE_TYPE.TIME_ENTRY_DETAILS,
-        data: this._currentEntryMessage,
-      });
+      this.sendTimeEntryDetails(this.currentEntry);
     }, {immediate: true});
   }
 
@@ -116,11 +120,19 @@ class Tracking {
    */
   _subscribeEntriesLog() {
     this._timeEntriesLog.subscribe(() => {
-      this._transmitter.sendMessage({
+      this.transmitter.sendMessage({
         type: MESSAGE_TYPE.ENTRIES_LOG_UPDATE,
-        data: this._timeEntriesLog.value.map(({id}) => id),
+        data: this.entriesLogIds,
       });
     }, {immediate: true});
+  }
+
+  /**
+   * Returns a list of entries log items ids
+   * @return {number[]}
+   */
+  get entriesLogIds() {
+    return Object.keys(this.timeEntriesLog).map((id) => parseInt(id, 10));
   }
 
   /**
@@ -161,7 +173,7 @@ class Tracking {
    */
   async initialize() {
     await this._updateUserData();
-    await this._fetchRecentTimeEntries();
+    await this._fetchRecentTimeEntriesLog();
     await this._launchEntriesRefreshing();
     debug('tracking initialized');
   }
@@ -180,27 +192,26 @@ class Tracking {
    */
   _attachCommandsProcessing() {
     // TODO: extract processing functions to methods
-    this._transmitter.onMessage(MESSAGE_TYPE.STOP_TIME_ENTRY, async ({stop, id}) => {
-      if (id === this.currentEntryId) {
-        this.currentEntry = await this._api.updateTimeEntry({
-          ...this.currentEntry,
-          stop: new Date(stop).toISOString(),
-        });
-      }
+    this.transmitter.onMessage(MESSAGE_TYPE.STOP_TIME_ENTRY, async ({stop, id}) => {
+      await this.stopTimeEntry(id, stop);
     });
 
-    this._transmitter.onMessage(MESSAGE_TYPE.START_TIME_ENTRY, async ({start, id}) => {
-      if (id === this.currentEntryId) {
-        this.currentEntry = await this._api.createTimeEntry({
-          wid: this.user && this.user.default_workspace_id,
-          ...this.currentEntry,
-          stop: null,
-          start: new Date(start).toISOString(),
-        });
-      }
+    this.transmitter.onMessage(MESSAGE_TYPE.REQUEST_ENTRY_DETAILS, ({entryId}) => {
+      const entryFromLog = this.timeEntriesLog[entryId];
+
+      this.sendTimeEntryDetails(entryFromLog);
     });
 
-    this._transmitter.onMessage(MESSAGE_TYPE.DELETE_TIME_ENTRY, async ({id}) => {
+    this.transmitter.onMessage(MESSAGE_TYPE.START_TIME_ENTRY, async ({start, id}) => {
+      await this._api.createTimeEntry({
+        wid: this.user && this.user.default_workspace_id,
+        ...this.timeEntriesLog[id],
+        stop: null,
+        start: new Date(start).toISOString(),
+      });
+    });
+
+    this.transmitter.onMessage(MESSAGE_TYPE.DELETE_TIME_ENTRY, async ({id}) => {
       if (id === this.currentEntryId) {
         await this._api.deleteTimeEntry(this.currentEntry);
       }
@@ -209,8 +220,36 @@ class Tracking {
   }
 
   /**
+   * Sends time entry in defined format
+   * @param {Object} timeEntry
+   */
+  sendTimeEntryDetails(timeEntry) {
+    const isCurrentEntry = {cur: !timeEntry || timeEntry.id === this.currentEntryId};
+    const data = Object.assign(isCurrentEntry, timeEntryDetails(timeEntry, this.projects[timeEntry && timeEntry.pid]));
+    this.transmitter.sendMessage({
+      type: MESSAGE_TYPE.TIME_ENTRY_DETAILS,
+      data,
+    });
+  }
+
+  /**
+   * Stops entry with provided id
+   * @param {number} id
+   * @param {number} stop
+   * @return {Promise<void>}
+   */
+  async stopTimeEntry(id, stop) {
+    if (id === this.currentEntryId) {
+      this.currentEntry = await this._api.updateTimeEntry({
+        ...this.currentEntry,
+        stop: new Date(stop).toISOString(),
+      });
+    }
+  }
+
+  /**
    * Returns and id of current time entry
-   * @return {null|string}
+   * @return {null|number}
    */
   get currentEntryId() {
     return this.currentEntry && this.currentEntry.id;
@@ -240,7 +279,15 @@ class Tracking {
    */
   async _updateUserData() {
     this.user = await this._api.fetchUserInfo();
-    this.projects = await this._api.fetchProjects();
+    await this.assignProjects();
+  }
+
+  /**
+   * Assigns users' projects info
+   * @return {Promise<void>}
+   */
+  async assignProjects() {
+    this.projects = turnIntoIndexedList(await this._api.fetchProjects(), 'id');
   }
 
   /**
@@ -249,41 +296,30 @@ class Tracking {
    * @private
    */
   async _fetchMostRecentEntry() {
-    return await this._api.fetchCurrentEntry() || (this.timeEntriesLog)[0];
+    return await this._api.fetchCurrentEntry() || this.lastEntry;
+  }
+
+  /**
+   * Returns a last time entry from the log
+   * @return {*}
+   */
+  get lastEntry() {
+    const lastEntryId = this.entriesLogIds.reduce((last, current) => current > last ? current : last, 0);
+    return this.timeEntriesLog[lastEntryId];
   }
 
   /**
    *  Returns a list of recent time entries
    * @return {Promise<*[]>}
    */
-  async _fetchRecentTimeEntries() {
-    this.timeEntriesLog = await this._api.fetchTimeEntries() || [];
-  }
-
-  /**
-   * Getter for current entry info to be transferred to the device
-   * @return {TimeEntryMessage} message of time entry
-   * @private
-   */
-  get _currentEntryMessage() {
-    return {
-      ...timeEntryDetails(this.currentEntry, this._currentEntryProject),
-      cur: true,
-    };
-  }
-
-  /**
-   * returns project having id equals to pid of current entry
-   * @return {*}
-   * @private
-   */
-  get _currentEntryProject() {
-    return (this.projects || []).find(({id}) => this.currentEntry && id === this.currentEntry.pid);
+  async _fetchRecentTimeEntriesLog() {
+    this.timeEntriesLog = turnIntoIndexedList(await this._api.fetchTimeEntries(), 'id');
   }
 }
 
 export {
   Tracking,
+  timeEntryDetails,
   ENTRIES_REFRESH_INTERVAL,
   NO_PROJECT_COLOR,
   NO_PROJECT_INFO,

@@ -5,4 +5,5 @@ export const MESSAGE_TYPE = Object.freeze({
   START_TIME_ENTRY: 4,
   STOP_TIME_ENTRY: 5,
   ENTRIES_LOG_UPDATE: 6,
+  REQUEST_ENTRY_DETAILS: 7,
 });

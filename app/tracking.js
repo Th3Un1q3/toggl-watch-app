@@ -1,5 +1,6 @@
 import {MESSAGE_TYPE} from '../common/message-types';
 import {Subject} from '../common/observable';
+import {debug} from '../common/debug';
 
 /**
  * This module is responsible for tracking and works in pair with companion's tracking module.
@@ -11,8 +12,9 @@ class Tracking {
    */
   constructor({transmitter}) {
     this.currentEntrySubject = new Subject(null);
-    this.entriesLogContentsSubject = new Subject([]);
-    this._transmitter = transmitter;
+    this.entriesLogContentsSubject = new Subject([], {changeOnly: true});
+    this.entriesLogDetailsSubject = new Subject([]);
+    this.transmitter = transmitter;
     this._subscribeOnEntryReceived();
     this._subscribeOnLogUpdate();
   }
@@ -23,6 +25,22 @@ class Tracking {
    */
   set currentEntry(updatedEntry) {
     this.currentEntrySubject.next(updatedEntry);
+  }
+
+  /**
+   * Returns a list of time entry details;
+   * @return {*}
+   */
+  get entriesLogDetails() {
+    return this.entriesLogDetailsSubject.value;
+  }
+
+  /**
+   * Updates entries log details
+   * @param {Object[]} updatedList
+   */
+  set entriesLogDetails(updatedList) {
+    this.entriesLogDetailsSubject.next(updatedList);
   }
 
   /**
@@ -53,7 +71,7 @@ class Tracking {
    * Gives a command to delete current entry to companion app
    */
   deleteCurrentEntry() {
-    this._transmitter.sendMessage({
+    this.transmitter.sendMessage({
       type: MESSAGE_TYPE.DELETE_TIME_ENTRY,
       data: {
         id: this.currentEntry.id,
@@ -67,15 +85,27 @@ class Tracking {
    * @param {number} entryId
    * @param {*} meta
    */
-  requestDetails({entryId, ...meta}) {
-    // TODO: not request if in details list
+  requestDetails({entryId, displayedIn}) {
+    const alreadyRequestedEntriesIds = this.entriesLogDetails.map(({entryId}) => entryId);
+    if (alreadyRequestedEntriesIds.includes(entryId)) {
+      return;
+    }
+
+    const awaitList = this.entriesLogDetails.filter(({displayedIn}) => displayedIn === displayedIn);
+
+    this.entriesLogDetails = awaitList.concat([{entryId, displayedIn}]);
+    debug('entries details', this.entriesLogDetails);
+    this.transmitter.sendMessage({
+      type: MESSAGE_TYPE.REQUEST_ENTRY_DETAILS,
+      data: {entryId},
+    });
   }
 
   /**
    * Sends a command to resume current(last) entry
    */
   resumeCurrentEntry() {
-    this._transmitter.sendMessage({
+    this.transmitter.sendMessage({
       type: MESSAGE_TYPE.START_TIME_ENTRY,
       data: {
         id: this.currentEntry.id,
@@ -90,7 +120,7 @@ class Tracking {
    * Sends a command to stop current entry
    */
   stopCurrentEntry() {
-    this._transmitter.sendMessage({
+    this.transmitter.sendMessage({
       type: MESSAGE_TYPE.STOP_TIME_ENTRY,
       data: {
         id: this.currentEntry.id,
@@ -105,7 +135,7 @@ class Tracking {
    * @private
    */
   _subscribeOnLogUpdate() {
-    this._transmitter.onMessage(MESSAGE_TYPE.ENTRIES_LOG_UPDATE, (logIds) => {
+    this.transmitter.onMessage(MESSAGE_TYPE.ENTRIES_LOG_UPDATE, (logIds) => {
       this.entriesLogContents = logIds;
     });
   }
@@ -115,7 +145,7 @@ class Tracking {
    * @private
    */
   _subscribeOnEntryReceived() {
-    this._transmitter.onMessage(MESSAGE_TYPE.TIME_ENTRY_DETAILS, (entry) => {
+    this.transmitter.onMessage(MESSAGE_TYPE.TIME_ENTRY_DETAILS, (entry) => {
       if (entry.cur) {
         this.currentEntry = entry;
       }

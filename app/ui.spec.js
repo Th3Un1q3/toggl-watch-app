@@ -189,7 +189,7 @@ describe('UI module', () => {
           expect(tracking.requestDetails).toHaveBeenLastCalledWith({
             entryId: expectedEntryId,
             displayedIn: entryLogTile.id,
-          })
+          });
         });
       });
     });

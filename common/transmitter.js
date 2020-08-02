@@ -1,11 +1,11 @@
 import {peerSocket} from 'messaging';
 import {debug} from './debug';
 
-const SUSPENSION_BUFFER_BYTES = 5 * 1024;
+const SUSPENSION_BUFFER_BYTES = 64;
 
-const COMPANION_QUEUE_SIZE = 10;
+const COMPANION_QUEUE_SIZE = 20;
 
-const DEVICE_QUEUE_SIZE = 3;
+const DEVICE_QUEUE_SIZE = 6;
 
 /**
  * Implements data transmission between companion app and device app
@@ -75,6 +75,7 @@ class Transmitter {
     if (this.isTransmissionAllowed) {
       peerSocket.send(message);
       debug('message sent', message);
+      debug('messages in queue', this._messageQueue);
     } else {
       this._addMessageToQueue(message);
       debug('message queued', message);
@@ -88,7 +89,7 @@ class Transmitter {
    */
   _addMessageToQueue(message) {
     if (this._messageQueue.length >= this._queueSize) {
-      this._messageQueue.shift();
+      debug('queue overload item deleted', this._messageQueue.shift());
     }
 
     this._messageQueue.push(message);
@@ -113,7 +114,7 @@ class Transmitter {
     const messageHandlers = new Map();
 
     peerSocket.onmessage = ({data: message}) => {
-      debug('received', message);
+      debug('message received', message);
       const {type, data} = message || {};
 
       if (type) {
@@ -129,10 +130,8 @@ class Transmitter {
    * @private
    */
   _sendQueuedMessages() {
-    const message = this._messageQueue.shift();
-
-    if (!!message) {
-      this.sendMessage(message);
+    if (this._messageQueue.length) {
+      this.sendMessage(this._messageQueue.shift());
     }
   }
 }
@@ -140,5 +139,6 @@ class Transmitter {
 export {
   Transmitter,
   DEVICE_QUEUE_SIZE,
+  SUSPENSION_BUFFER_BYTES,
   COMPANION_QUEUE_SIZE,
 };

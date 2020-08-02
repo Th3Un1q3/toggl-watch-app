@@ -63,7 +63,7 @@ class ElementWrapper {
     if (this._classList.includes(className)) {
       return;
     }
-    this._el.class = [...this._classList, className].filter((c) => !!c)
+    this._el.class = this._classList.concat([className]).filter((c) => !!c)
         .join(' ');
   }
 

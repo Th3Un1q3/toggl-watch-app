@@ -36,6 +36,36 @@ describe('Tracking on device', () => {
     expect(entryUpdated).not.toHaveBeenCalled();
   });
 
+  describe('.requestDetails', () => {
+    let entryId;
+
+    beforeEach(() => {
+      entryId = faker.random.number();
+      tracking.requestDetails({entryId, displayedAt: 'time-entry[0]'});
+    });
+
+    it('should not re-request the same entry', () => {
+      tracking.requestDetails({entryId, displayedAt: 'time-entry[1]'});
+      expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
+      tracking.requestDetails({entryId: faker.random.number(), displayedAt: 'time-entry[1]'});
+      expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(2);
+    });
+
+    it('should send a message with REQUEST_ENTRY_DETAILS type', () => {
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+        type: MESSAGE_TYPE.REQUEST_ENTRY_DETAILS,
+      }));
+    });
+
+    it('should send message with entryId', () => {
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+        data: {
+          entryId,
+        },
+      }));
+    });
+  });
+
   describe('.deleteCurrentEntry', () => {
     beforeEach(() => {
       tracking.currentEntry = currentEntry;

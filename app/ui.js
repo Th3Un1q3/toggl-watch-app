@@ -116,6 +116,7 @@ class UserInterface {
    */
   initialize() {
     this.enableLoader();
+    this.attachEntriesLogBehavior();
     this._subscribeOnCurrentEntryChange();
     this._subscribeOnLogChange();
   }
@@ -258,6 +259,7 @@ class UserInterface {
   teardown() {
     this._stopCurrentEntryRefresh();
     this._unsubscribeCurrentEntryChange();
+    this._unsubscribeEntriesLogChange();
   }
 
   /**
@@ -326,7 +328,6 @@ class UserInterface {
     this._unsubscribeEntriesLogChange();
     this._entriesLogChangeSubscription = this.tracking.entriesLogContentsSubject.subscribe(() => {
       this._initiateEntriesLog();
-      this._unsubscribeEntriesLogChange();
     });
   }
 
@@ -335,6 +336,14 @@ class UserInterface {
    * @private
    */
   _initiateEntriesLog() {
+    _el(EID.LogContainer).native.length = this.tracking.entriesLogContents.length + 1;
+  }
+
+  /**
+   * Defines how entries list should behave
+   * Attaches render processors.
+   */
+  attachEntriesLogBehavior() {
     _el(EID.LogContainer).native.delegate = {
       getTileInfo: (position) => {
         const positionInEntriesLog = position - 1;
@@ -359,7 +368,6 @@ class UserInterface {
         });
       },
     };
-    _el(EID.LogContainer).native.length = this.tracking.entriesLogContents.length + 1;
   }
 
   /**

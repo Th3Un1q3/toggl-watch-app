@@ -3,7 +3,7 @@ import faker from 'faker';
 import {
   ENTRIES_REFRESH_INTERVAL,
   NO_PROJECT_COLOR, NO_PROJECT_INFO,
-  OPTIMAL_TEXTS_LENGTH,
+  OPTIMAL_TEXTS_LENGTH, timeEntryDetails,
   Tracking,
 } from './tracking';
 import {API} from './api';
@@ -37,9 +37,15 @@ describe('Tracking', () => {
 
   describe('commands handling', () => {
     let currentEntry;
+    let entryInLog;
 
     beforeEach(async () => {
       currentEntry = timeEntryBody({stop: faker.date.past()});
+      entryInLog = timeEntryBody();
+      api.fetchTimeEntries.mockResolvedValue([
+        currentEntry,
+        entryInLog,
+      ]);
       api.fetchProjects.mockResolvedValue([]);
       api.fetchCurrentEntry.mockResolvedValue(currentEntry);
       await tracking.initialize();
@@ -52,6 +58,24 @@ describe('Tracking', () => {
       expect(api.createTimeEntry).not.toHaveBeenCalled();
       expect(api.deleteTimeEntry).not.toHaveBeenCalled();
       expect(tracking.refreshCurrentEntry).not.toHaveBeenCalled();
+    });
+
+    describe('request time entry details', () => {
+      beforeEach(() => {
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.REQUEST_ENTRY_DETAILS, {
+          entryId: entryInLog.id,
+        });
+      });
+
+      it('should send time entry info from the log', () => {
+        expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith({
+          type: MESSAGE_TYPE.TIME_ENTRY_DETAILS,
+          data: {
+            ...timeEntryDetails(entryInLog),
+            cur: false,
+          },
+        });
+      });
     });
 
     describe('stop current entry', () => {
@@ -94,9 +118,12 @@ describe('Tracking', () => {
 
     describe('resume last entry', () => {
       let start;
+      let wid;
 
       beforeEach(() => {
+        wid = faker.random.number();
         start = Date.now();
+        api.fetchUserInfo.mockResolvedValue({default_workspace_id: wid});
 
         Transmitter.emitMessageReceived(MESSAGE_TYPE.START_TIME_ENTRY, {
           id: currentEntry.id,
@@ -114,16 +141,12 @@ describe('Tracking', () => {
         }));
       });
 
-      describe('when there is no current entry', () => {
-        let wid;
-
+      describe('when there is entry matched by id', () => {
         beforeEach(async () => {
-          wid = faker.random.number();
-
           api.createTimeEntry.mockClear();
-          api.fetchUserInfo.mockResolvedValue({default_workspace_id: wid});
           api.fetchCurrentEntry.mockResolvedValue(null);
           await tracking.initialize();
+          tracking.currentEntry = null;
           await flushPromises();
 
           Transmitter.emitMessageReceived(MESSAGE_TYPE.START_TIME_ENTRY, {
@@ -147,15 +170,19 @@ describe('Tracking', () => {
           api.createTimeEntry.mockClear();
 
           Transmitter.emitMessageReceived(MESSAGE_TYPE.START_TIME_ENTRY, {
-            id: faker.random.number(),
+            id: entryInLog.id,
             start,
           });
 
           await flushPromises();
         });
 
-        it('should not call api.createTimeEntry', () => {
-          expect(api.createTimeEntry).not.toHaveBeenCalled();
+        it('should resume entry from the log', () => {
+          expect(api.createTimeEntry).toHaveBeenLastCalledWith(expect.objectContaining({
+            ...entryInLog,
+            start: new Date(start).toISOString(),
+            stop: null,
+          }));
         });
       });
     });
