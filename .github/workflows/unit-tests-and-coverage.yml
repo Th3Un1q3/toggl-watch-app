@@ -19,7 +19,7 @@ jobs:
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
       - name: Install Dependencies
-          run: yarn install
+        run: yarn install
 
       - uses: actions/cache@v1
         with:
