@@ -1,12 +1,12 @@
-name: Collect code coverage
+name: Style guide check
 on:
   push:
     branches:
-      - master
+      - ci
 
 jobs:
   run:
-    name: Run tests and collect results
+    name: Launch eslint with google stryle guide
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -21,10 +21,5 @@ jobs:
       - name: Install Dependencies
         run: yarn install
 
-      - name: Run tests with collect coverage
-        run: yarn test:unit --maxWorkers=4 --collectCoverage
-
-      - uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODE_COV_TOKEN }}
-          fail_ci_if_error: true
+      - name: Run linter
+        run: yarn lint
