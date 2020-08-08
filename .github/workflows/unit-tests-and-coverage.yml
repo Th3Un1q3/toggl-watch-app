@@ -2,14 +2,12 @@ name: Collect code coverage
 on:
   push:
     branches:
-      - ci
+      - master
 
 jobs:
   run:
     name: Run tests and collect results
     runs-on: ubuntu-latest
-    env:
-      VUE_APP_CAPTCHA_SECRET: ${{ secrets.VUE_APP_CAPTCHA_SECRET }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@master
