@@ -2,7 +2,7 @@ name: Style guide check
 on:
   push:
     branches:
-      - ci
+      - master
 
 jobs:
   run:
