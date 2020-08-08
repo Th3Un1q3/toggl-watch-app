@@ -1,13 +1,6 @@
-
-import {
-  disableCurrentEntryDeletion,
-  enableCurrentEntryDeletion,
-  enableCurrentEntryPausing, enableCurrentEntryResuming, enableLoader,
-  showCurrentEntry,
-} from './ui';
 import {MESSAGE_TYPE} from '../common/message-types';
-
-const TIMER_UPDATE_INTERVAL_MS = 1000;
+import {Subject} from '../common/observable';
+import {dig} from '../common/utils/dig';
 
 /**
  * This module is responsible for tracking and works in pair with companion's tracking module.
@@ -15,99 +8,189 @@ const TIMER_UPDATE_INTERVAL_MS = 1000;
 class Tracking {
   /**
    * Definition of initial values and properties
+   * @param {Transmitter} messages transmitter instance
    */
   constructor({transmitter}) {
-    this._transmitter = transmitter;
-    this.currentEntry = null;
-    this._currentEntryRefresh = null;
+    this.currentEntrySubject = new Subject(null);
+    this.entriesLogContentsSubject = new Subject([], {changeOnly: true});
+    this.entriesLogDetailsSubject = new Subject([], {changeOnly: true});
+    this.transmitter = transmitter;
+    this._subscribeOnEntryReceived();
+    this._subscribeOnLogUpdate();
   }
 
   /**
-   * Makes everything required when current entry is updated
-   * @param {Object} entry
+   * Updates current entry
+   * @param {TimeEntryMessage|null} updatedEntry
    */
-  currentEntryUpdated(entry) {
-    this.currentEntry = entry;
-    showCurrentEntry(this.currentEntry);
-    this._configureCurrentEntryControls();
+  set currentEntry(updatedEntry) {
+    this.currentEntrySubject.next(updatedEntry);
+  }
 
-    this._launchCurrentEntryRefresh();
+  /**
+   * Returns a list of time entry details;
+   * @return {*}
+   */
+  get entriesLogDetails() {
+    return this.entriesLogDetailsSubject.value;
+  }
+
+  /**
+   * Updates entries log details
+   * @param {Object[]} updatedList
+   */
+  set entriesLogDetails(updatedList) {
+    this.entriesLogDetailsSubject.next(updatedList);
+  }
+
+  /**
+   * Returns current entry value
+   * @return {TimeEntryMessage|null}
+   */
+  get currentEntry() {
+    return this.currentEntrySubject.value;
+  }
+
+  /**
+   * Updates contents of entries log
+   * @param {number[]} logContents
+   */
+  set entriesLogContents(logContents) {
+    this.entriesLogContentsSubject.next(logContents);
+  }
+
+  /**
+   * Returns contents of entries log(a list of ids)
+   * @return {number[]}
+   */
+  get entriesLogContents() {
+    return this.entriesLogContentsSubject.value;
   }
 
   /**
    * Gives a command to delete current entry to companion app
    */
   deleteCurrentEntry() {
-    this._transmitter.sendMessage({
-      type: MESSAGE_TYPE.DELETE_CURRENT_ENTRY,
+    this.transmitter.sendMessage({
+      type: MESSAGE_TYPE.DELETE_TIME_ENTRY,
       data: {
         id: this.currentEntry.id,
       },
     });
-    clearInterval(this._currentEntryRefresh);
-    enableLoader();
+    this.currentEntry = null;
+  }
+
+  /**
+   * Requests time entries details
+   * @param {number} entryId
+   * @param {*} meta
+   */
+  requestDetails({entryId, displayedIn}) {
+    const alreadyRequestedEntriesIds = this.entriesLogDetails.map(({entryId}) => entryId);
+    if (alreadyRequestedEntriesIds.includes(entryId)) {
+      return;
+    }
+
+    const awaitList = this.entriesLogDetails.filter(({displayedIn: slotToDisplay}) => slotToDisplay !== displayedIn);
+
+    this.entriesLogDetails = awaitList.concat([{entryId, displayedIn}]);
+
+    this.transmitter.sendMessage({
+      type: MESSAGE_TYPE.REQUEST_ENTRY_DETAILS,
+      data: {entryId},
+    });
+  }
+
+  /**
+   * Starts entry form entries log;
+   * @param {string} entryToResumeId
+   */
+  startEntryFromLog(entryToResumeId) {
+    const entryDetails = dig(
+        this.entriesLogDetails.find(({entryId}) => entryId === entryToResumeId),
+        'info',
+    );
+
+    this.currentEntry = entryDetails;
+    this.resumeCurrentEntry();
+
+    if (!this.currentEntry) {
+      this.sendStartEntryCommand({id: entryToResumeId, start: Date.now()});
+    }
   }
 
   /**
    * Sends a command to resume current(last) entry
    */
   resumeCurrentEntry() {
-    this._transmitter.sendMessage({
-      type: MESSAGE_TYPE.RESUME_LAST_ENTRY,
+    if (!dig(this.currentEntry, 'id')) {
+      return;
+    }
+
+    const {id, ...newEntryData} = this.currentEntry;
+
+    this.currentEntry = Object.assign({}, newEntryData, {id: null, start: Date.now(), isPlaying: true});
+    this.sendStartEntryCommand({id, start: Date.now()});
+  }
+
+  /**
+   * Sends a command to start entry
+   * @param {number} id
+   * @param {number} start
+   */
+  sendStartEntryCommand({id, start}) {
+    this.transmitter.sendMessage({
+      type: MESSAGE_TYPE.START_TIME_ENTRY,
       data: {
-        id: this.currentEntry.id,
-        start: Date.now(),
+        id,
+        start,
       },
     });
-    this.currentEntryUpdated({...this.currentEntry, start: Date.now()});
   }
 
   /**
    * Sends a command to stop current entry
    */
   stopCurrentEntry() {
-    this._transmitter.sendMessage({
-      type: MESSAGE_TYPE.STOP_CURRENT_ENTRY,
+    this.transmitter.sendMessage({
+      type: MESSAGE_TYPE.STOP_TIME_ENTRY,
       data: {
         id: this.currentEntry.id,
         stop: Date.now(),
       },
     });
-    this.currentEntryUpdated({...this.currentEntry, start: undefined});
+    this.currentEntry = {...this.currentEntry, isPlaying: false};
   }
 
   /**
-   * Configures required ui controls depend of what
-   * is applicable to the current time entry
+   * Emits log subject on update
    * @private
    */
-  _configureCurrentEntryControls() {
-    if (this.currentEntry.start) {
-      enableCurrentEntryPausing(this);
-      enableCurrentEntryDeletion(this);
-      return;
-    }
-
-    enableCurrentEntryResuming(this);
-    disableCurrentEntryDeletion(this);
+  _subscribeOnLogUpdate() {
+    this.transmitter.onMessage(MESSAGE_TYPE.ENTRIES_LOG_UPDATE, (logIds) => {
+      this.entriesLogContents = logIds;
+    });
   }
 
   /**
-   * Starts screen refresh process
+   * Reacts on entry update
    * @private
    */
-  _launchCurrentEntryRefresh() {
-    if (this._currentEntryRefresh) {
-      clearInterval(this._currentEntryRefresh);
-    }
+  _subscribeOnEntryReceived() {
+    this.transmitter.onMessage(MESSAGE_TYPE.TIME_ENTRY_DETAILS, (entry) => {
+      if (entry.cur) {
+        this.currentEntry = entry;
+      }
 
-    this._currentEntryRefresh = setInterval(() => {
-      showCurrentEntry(this.currentEntry);
-    }, TIMER_UPDATE_INTERVAL_MS);
+      this.entriesLogDetails = this.entriesLogDetails.map((details) => ({
+        ...details,
+        ...(details.entryId === entry.id ? {info: entry} : {}),
+      }));
+    });
   }
 }
 
 export {
   Tracking,
-  TIMER_UPDATE_INTERVAL_MS,
+
 };

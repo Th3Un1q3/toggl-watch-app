@@ -1,17 +1,12 @@
-import _ from 'lodash';
 import faker from 'faker';
-import {
-  disableCurrentEntryDeletion,
-  enableCurrentEntryDeletion,
-  enableCurrentEntryPausing, enableCurrentEntryResuming, enableLoader,
-  showCurrentEntry,
-} from './ui';
+import _ from 'lodash';
+
 import {timeEntryBody} from '../utils/factories/time-entries';
-import {Tracking, TIMER_UPDATE_INTERVAL_MS} from './tracking';
+import {Tracking} from './tracking';
 import {Transmitter} from '../common/transmitter';
 import {MESSAGE_TYPE} from '../common/message-types';
+import {timeEntryDetails} from '../companion/tracking';
 
-jest.mock('./ui');
 jest.mock('../common/transmitter');
 
 describe('Tracking on device', () => {
@@ -19,18 +14,72 @@ describe('Tracking on device', () => {
   let transmitter;
   let currentEntry;
   let now;
+  const subscriptions = [];
+  const entriesLogUpdated = jest.fn();
+  const entryUpdated = jest.fn();
 
   beforeEach(() => {
     now = faker.date.past().getTime();
     transmitter = new Transmitter();
     tracking = new Tracking({transmitter});
+    subscriptions.push(tracking.currentEntrySubject.subscribe(entryUpdated));
+    subscriptions.push(tracking.entriesLogContentsSubject.subscribe(entriesLogUpdated));
     currentEntry = timeEntryBody();
     jest.spyOn(Date, 'now').mockReturnValue(now);
   });
 
+  afterEach(() => {
+    (subscriptions || []).map((s) => s.unsubscribe());
+  });
+
+  it('should not emit initial update', () => {
+    expect(entryUpdated).not.toHaveBeenCalled();
+  });
+
+  describe('.requestDetails', () => {
+    let entryId;
+
+    beforeEach(() => {
+      entryId = faker.random.number();
+      tracking.requestDetails({entryId, displayedIn: 'time-entry[0]'});
+    });
+
+    it('should not re-request the same entry', () => {
+      tracking.requestDetails({entryId, displayedIn: 'time-entry[1]'});
+      expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
+      tracking.requestDetails({entryId: faker.random.number(), displayedIn: 'time-entry[1]'});
+      expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(2);
+    });
+
+    it('should send a message with REQUEST_ENTRY_DETAILS type', () => {
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+        type: MESSAGE_TYPE.REQUEST_ENTRY_DETAILS,
+      }));
+    });
+
+    it('should send message with entryId', () => {
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+        data: {
+          entryId,
+        },
+      }));
+    });
+
+    describe('when entry details received', () => {
+      it('should update entriesLogDetails', () => {
+        const info = {id: entryId};
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.TIME_ENTRY_DETAILS, info);
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.TIME_ENTRY_DETAILS, {id: faker.random.number()});
+        expect(tracking.entriesLogDetails).toEqual([
+          {entryId, displayedIn: 'time-entry[0]', info},
+        ]);
+      });
+    });
+  });
+
   describe('.deleteCurrentEntry', () => {
     beforeEach(() => {
-      tracking.currentEntryUpdated(currentEntry);
+      tracking.currentEntry = currentEntry;
       tracking.deleteCurrentEntry();
     });
 
@@ -43,28 +92,21 @@ describe('Tracking on device', () => {
       }));
     });
 
-    it('should call transmitter.sendMessage with message.type:DELETE_CURRENT_ENTRY', () => {
+    it('should call transmitter.sendMessage with message.type:DELETE_TIME_ENTRY', () => {
       expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
-        type: MESSAGE_TYPE.DELETE_CURRENT_ENTRY,
+        type: MESSAGE_TYPE.DELETE_TIME_ENTRY,
       }));
     });
 
-    it('should stop refresh of current entry', () => {
-      expect(showCurrentEntry).toHaveBeenCalledTimes(1);
-
-      jest.advanceTimersByTime(TIMER_UPDATE_INTERVAL_MS * 5);
-
-      expect(showCurrentEntry).toHaveBeenCalledTimes(1);
-    });
-
-    it('should enableLoader', () => {
-      expect(enableLoader).toHaveBeenCalledTimes(1);
+    it('should set current entry to null', () => {
+      expect(entryUpdated).toHaveBeenCalledTimes(2);
+      expect(tracking.currentEntry).toBeNull();
     });
   });
 
   describe('.resumeCurrentEntry', () => {
     beforeEach(() => {
-      tracking.currentEntryUpdated(currentEntry);
+      tracking.currentEntry = currentEntry;
       tracking.resumeCurrentEntry();
     });
 
@@ -77,22 +119,82 @@ describe('Tracking on device', () => {
       }));
     });
 
-    it('should call transmitter.sendMessage with message.type:RESUME_LAST_ENTRY', () => {
+    it('should call transmitter.sendMessage with message.type:START_TIME_ENTRY', () => {
       expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
-        type: MESSAGE_TYPE.RESUME_LAST_ENTRY,
+        type: MESSAGE_TYPE.START_TIME_ENTRY,
       }));
     });
 
     it('should make refresh immediately with start time', () => {
-      expect(showCurrentEntry).toHaveBeenCalledTimes(2);
-      expect(showCurrentEntry).toHaveBeenLastCalledWith(expect.objectContaining({
+      expect(entryUpdated).toHaveBeenCalledTimes(2);
+      expect(tracking.currentEntry).toEqual(expect.objectContaining({
         start: now,
+        isPlaying: true,
       }));
     });
   });
+
+  describe('.startEntryFromLog', () => {
+    let entryWithDetails;
+    let entryWithoutDetails;
+
+    beforeEach(() => {
+      entryWithDetails = timeEntryDetails(timeEntryBody());
+      entryWithoutDetails = timeEntryDetails(timeEntryBody());
+
+      tracking.entriesLogDetails = [
+        {
+          entryId: entryWithoutDetails.id,
+          displayedIn: 'time-entry[1]',
+        },
+        {
+          entryId: entryWithDetails.id,
+          displayedIn: 'time-entry[0]',
+          info: entryWithDetails,
+        },
+      ];
+    });
+
+    it('should update current entry with info', () => {
+      tracking.startEntryFromLog(entryWithDetails.id);
+      expect(tracking.currentEntry).toEqual(expect.objectContaining({
+        ..._.omit(entryWithDetails, 'id'),
+        start: Date.now(), isPlaying: true,
+      }));
+    });
+
+    it('should send start entry command', () => {
+      tracking.startEntryFromLog(entryWithDetails.id);
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+        data: {
+          id: entryWithDetails.id,
+          start: now,
+        },
+      }));
+    });
+
+    describe('when log has no details', () => {
+      beforeEach(() => {
+        tracking.startEntryFromLog(entryWithoutDetails.id);
+      });
+
+      it('should nullify current entry', () => {
+        expect(tracking.currentEntry).toBeFalsy();
+      });
+      it('should send command to resume time entry', () => {
+        expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+          data: {
+            id: entryWithoutDetails.id,
+            start: now,
+          },
+        }));
+      });
+    });
+  });
+
   describe('.stopCurrentEntry', () => {
     beforeEach(() => {
-      tracking.currentEntryUpdated(currentEntry);
+      tracking.currentEntry = currentEntry;
       tracking.stopCurrentEntry();
     });
 
@@ -105,87 +207,69 @@ describe('Tracking on device', () => {
       }));
     });
 
-    it('should call transmitter.sendMessage with message.type:STOP_CURRENT_ENTRY', () => {
+    it('should call transmitter.sendMessage with message.type:STOP_TIME_ENTRY', () => {
       expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
-        type: MESSAGE_TYPE.STOP_CURRENT_ENTRY,
+        type: MESSAGE_TYPE.STOP_TIME_ENTRY,
       }));
     });
 
     it('should make refresh immediately without start time', () => {
-      expect(showCurrentEntry).toHaveBeenCalledTimes(2);
-      expect(showCurrentEntry).toHaveBeenLastCalledWith(expect.not.objectContaining({
-        start: expect.anything(),
+      expect(entryUpdated).toHaveBeenCalledTimes(2);
+      expect(tracking.currentEntry).toEqual(expect.objectContaining({
+        isPlaying: false,
       }));
     });
   });
 
-  describe('.currentEntryUpdated', () => {
-    it('should call show current entry instantly', () => {
-      tracking.currentEntryUpdated(currentEntry);
+  describe('when message with type ENTRIES_LOG_UPDATE received', () => {
+    let logContents;
 
-      expect(showCurrentEntry).toHaveBeenCalledTimes(1);
-      expect(showCurrentEntry).toHaveBeenLastCalledWith(currentEntry);
+    const triggerMessageReceived = (data) => {
+      Transmitter.emitMessageReceived(MESSAGE_TYPE.ENTRIES_LOG_UPDATE, data);
+    };
+
+    beforeEach(() => {
+      logContents = _.times(10, faker.random.number);
     });
 
-    it('should call show current entry every second since then', () => {
-      tracking.currentEntryUpdated(currentEntry);
-      jest.advanceTimersByTime(TIMER_UPDATE_INTERVAL_MS);
+    it('should emit log update', () => {
+      expect(entriesLogUpdated).not.toHaveBeenCalled();
+      triggerMessageReceived(logContents);
 
-      expect(showCurrentEntry).toHaveBeenCalledTimes(2);
-      expect(showCurrentEntry).toHaveBeenLastCalledWith(currentEntry);
+      expect(tracking.entriesLogContents).toEqual(logContents);
 
-      showCurrentEntry.mockClear();
+      expect(entriesLogUpdated).toHaveBeenCalledWith(logContents);
+      expect(entriesLogUpdated).toHaveBeenCalledTimes(1);
+    });
+  });
 
-      const newEntry = timeEntryBody();
-      tracking.currentEntryUpdated(newEntry);
+  describe('when message with type TIME_ENTRY_DETAILS received', () => {
+    let currentEntry;
 
-      jest.advanceTimersByTime(TIMER_UPDATE_INTERVAL_MS*5);
-      expect(showCurrentEntry).toHaveBeenLastCalledWith(newEntry);
-      expect(showCurrentEntry).not.toHaveBeenCalledWith(currentEntry);
+    const triggerMessageReceived = (data) => {
+      Transmitter.emitMessageReceived(MESSAGE_TYPE.TIME_ENTRY_DETAILS, data);
+    };
+
+    beforeEach(() => {
+      currentEntry = {...timeEntryDetails(timeEntryBody()), cur: true};
     });
 
-    test('none of ui functions is called initially', () => {
-      expect(enableCurrentEntryPausing).not.toHaveBeenCalled();
-      expect(showCurrentEntry).not.toHaveBeenCalled();
-      expect(disableCurrentEntryDeletion).not.toHaveBeenCalled();
-      expect(enableCurrentEntryResuming).not.toHaveBeenCalled();
+    it('should emit currentEntryChange', () => {
+      triggerMessageReceived(currentEntry);
+
+      expect(entryUpdated).toHaveBeenCalledTimes(1);
+      expect(entryUpdated).toHaveBeenLastCalledWith(currentEntry);
     });
 
-    describe('when entry is playing', () => {
+    describe('when it is not current entry received', () => {
       beforeEach(() => {
-        tracking.currentEntryUpdated(currentEntry);
+        currentEntry = {...timeEntryDetails(timeEntryBody()), cur: false};
       });
 
-      it('should call ui.enableCurrentEntryPausing with tracking instance', () => {
-        expect(enableCurrentEntryPausing).toHaveBeenLastCalledWith(tracking);
-      });
+      it('should not update current entry', () => {
+        triggerMessageReceived(currentEntry);
 
-      it('should call ui.enableCurrentEntryDeletion with tracking instance', () => {
-        expect(enableCurrentEntryDeletion).toHaveBeenLastCalledWith(tracking);
-      });
-
-      it('should not still call ui.disableCurrentEntryDeletion and ui.enableCurrentEntryResuming', () => {
-        expect(disableCurrentEntryDeletion).not.toHaveBeenCalled();
-        expect(enableCurrentEntryResuming).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('when entry is not playing', () => {
-      beforeEach(() => {
-        tracking.currentEntryUpdated(_.without(currentEntry, 'start'));
-      });
-
-      it('should call ui.disableCurrentEntryDeletion', () => {
-        expect(disableCurrentEntryDeletion).toHaveBeenLastCalledWith(tracking);
-      });
-
-      it('should call ui.enableCurrentEntryResuming with tracking instance', () => {
-        expect(enableCurrentEntryResuming).toHaveBeenLastCalledWith(tracking);
-      });
-
-      it('should not still call ui.enableCurrentEntryDeletion and ui.enableCurrentEntryPausing', () => {
-        expect(enableCurrentEntryDeletion).not.toHaveBeenCalled();
-        expect(enableCurrentEntryPausing).not.toHaveBeenCalled();
+        expect(entryUpdated).not.toHaveBeenCalled();
       });
     });
   });

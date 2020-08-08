@@ -1,7 +1,27 @@
 <svg viewport-fill="black">
-  <use id="current-entry" href="#current-entry-screen"/>
+  <use id="view-switch" href="#panoramaview">
+    <use id="entries-list-view" href="#panoramaview-item">
+      <use id="time-entries" href="#time-entries-list-screen"/>
+    </use>
 
-  <use id="loader" href="#spinner"/>
+    <use id="current-entry-view" href="#panoramaview-item">
+      <use id="current-entry" href="#current-entry-screen"/>
+    </use>
+
+    <use id="active-screen-indication" href="#pagination-widget">
+      <use href="#pagination-dot" />
+      <use href="#pagination-dot" />
+      <use href="#pagination-highlight-dot" />
+    </use>
+  </use>
+
+  <gradientRect class="tracking__indicators-background"/>
+
+  <text id="current-time" class="current-time">12:00AM</text>
+
+  <rect id="loader-container" class="loader__wrapper">
+    <use id="loader" class="loader" href="#spinner"/>
+  </rect>
 
   <rect id="configuration-instruction">
     <use href="#mixed-text-center-mid" height="100%" fill="fb-yellow">
@@ -9,4 +29,5 @@
       <set href="#copy/text" attributeName="text-buffer" to="_token_config_required_body"/>
     </use>
   </rect>
+
 </svg>

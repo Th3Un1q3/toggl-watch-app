@@ -1,6 +1,6 @@
 import {peerSocket, _resetPeerSocket} from 'messaging';
 import {MESSAGE_TYPE} from './message-types';
-import {DEVICE_QUEUE_SIZE, Transmitter} from './transmitter';
+import {DEVICE_QUEUE_SIZE, SUSPENSION_BUFFER_BYTES, Transmitter} from './transmitter';
 import {timeEntryBody} from '../utils/factories/time-entries';
 
 describe('Transmitter', () => {
@@ -73,7 +73,7 @@ describe('Transmitter', () => {
       const currentEntryPayload = timeEntryBody({});
 
       transmitter.onMessage(MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE, apiTokenHandler);
-      transmitter.onMessage(MESSAGE_TYPE.CURRENT_ENTRY_UPDATE, currentEntryHandler);
+      transmitter.onMessage(MESSAGE_TYPE.TIME_ENTRY_DETAILS, currentEntryHandler);
 
       expect(apiTokenHandler).not.toHaveBeenCalled();
 
@@ -83,7 +83,7 @@ describe('Transmitter', () => {
       expect(apiTokenHandler).toHaveBeenCalledWith(apiTokenUpdatePayload);
       expect(currentEntryHandler).not.toHaveBeenCalled();
 
-      peerSocket._onmessageHandler({data: {type: MESSAGE_TYPE.CURRENT_ENTRY_UPDATE, data: currentEntryPayload}});
+      peerSocket._onmessageHandler({data: {type: MESSAGE_TYPE.TIME_ENTRY_DETAILS, data: currentEntryPayload}});
 
       expect(apiTokenHandler).toHaveBeenCalledTimes(1);
       expect(currentEntryHandler).toHaveBeenCalledTimes(1);
@@ -125,9 +125,9 @@ describe('Transmitter', () => {
         peerSocket._readyState = peerSocket.OPEN;
       });
 
-      describe('when buffer amount is less than 5kb', () => {
+      describe(`when buffer amount is less than ${SUSPENSION_BUFFER_BYTES} bytes`, () => {
         beforeEach(() => {
-          peerSocket._bufferedAmount = 4 * 1024;
+          peerSocket._bufferedAmount = SUSPENSION_BUFFER_BYTES - 1;
         });
 
         it('should send a message using messaging', () => {
@@ -138,9 +138,9 @@ describe('Transmitter', () => {
         });
       });
 
-      describe('when buffer amount is more than 5kb', () => {
+      describe('when buffer amount is more than 1kb', () => {
         beforeEach(() => {
-          peerSocket._bufferedAmount = 6 * 1024;
+          peerSocket._bufferedAmount = 1024;
         });
 
         it('should not send a message', () => {
@@ -149,11 +149,11 @@ describe('Transmitter', () => {
           expect(peerSocket.send).not.toHaveBeenCalled();
         });
 
-        describe('when buffer amount become less than 5kb', () => {
+        describe(`when buffer amount become less than ${SUSPENSION_BUFFER_BYTES} bytes`, () => {
           beforeEach(() => {
             transmitter.sendMessage(messageBody);
 
-            peerSocket._bufferedAmount = 2 * 1024;
+            peerSocket._bufferedAmount = SUSPENSION_BUFFER_BYTES - 1;
           });
 
           it('should perform sending', () => {

@@ -1,12 +1,13 @@
 <svg>
   <defs>
+    <link rel="stylesheet" href="current-entry.css" />
     <link rel="import" href="/mnt/sysassets/widgets/combo_button_widget.gui"/>
     <link rel="import" href="/mnt/sysassets/widgets/marquee_text_widget.gui" />
     <symbol id="current-entry-screen">
       <rect class="current-entry">
-        <text id="current-time" class="current-time">12:00</text>
         <use
                 id="current-entry-project"
+                class="current-entry__project"
                 href="#marquee-text"
                 mode="0"
                 value="50"
@@ -15,6 +16,7 @@
         </use>
         <use
                 id="current-entry-description"
+                class="current-entry__description"
                 href="#marquee-text"
                 mode="0"
                 value="120"
@@ -43,20 +45,18 @@
         </section>
 
         <section id="current-entry-controls">
-          <use id="delete-button" href="#combo-button-upper-right">
+          <use id="delete-button" class="action-button--delete" href="#combo-button-upper-right">
             <set href="combo-button-icon" attributeName="href"
                  to="images/fitbit_icons/btn_combo_x_p.png"/>
             <set href="combo-button-icon-press" attributeName="href"
                  to="images/fitbit_icons/btn_combo_x_press_p.png"/>
-            <set href="combo-button-stroke" attributeName="display" to="inline"/>
           </use>
 
-          <use id="stop-resume-button" href="#combo-button-lower-right">
+          <use id="stop-resume-button" class="action-button--stop-resume" href="#combo-button-lower-right">
             <set href="combo-button-icon" attributeName="href"
                  to="images/fitbit_icons/btn_combo_pause_p.png"/>
             <set href="combo-button-icon-press" attributeName="href"
                  to="images/fitbit_icons/btn_combo_pause_press_p.png"/>
-<!--            TODO: REPLACE WITH STYLE-->
             <set href="combo-button-stroke" attributeName="display" to="inline"/>
           </use>
         </section>

@@ -1,3 +1,5 @@
-import {bootstrap} from './bootstrap';
+import './polyfills';
 
-bootstrap();
+import {App} from './app';
+
+App.instance.ui; // TODO: add a test for start
