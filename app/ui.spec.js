@@ -20,7 +20,7 @@ import {Tracking} from './tracking';
 import {
   BACKGROUND_HIGHLIGHT_CLASS, REGULAR_TEXT_COLOR,
   TIME_ENTRY_BILLABLE_CLASS,
-  TIME_ENTRY_HIDDEN_TILE_CLASS
+  TIME_ENTRY_HIDDEN_TILE_CLASS,
 } from './ui/entries-log-tile';
 
 jest.mock('./tracking');
