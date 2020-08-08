@@ -1,3 +1,6 @@
+[![codecov](https://codecov.io/gh/Th3Un1q3/toggl-watch-app/branch/master/graph/badge.svg)](https://codecov.io/gh/Th3Un1q3/toggl-watch-app)
+![Style guide check](https://github.com/Th3Un1q3/toggl-watch-app/workflows/Style%20guide%20check/badge.svg)
+
 # Toggl Watches App
 This is a client for [Toggl](https://www.toggl.com/) time tracking app.
 
