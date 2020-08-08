@@ -14,7 +14,7 @@
             <text id="billable" class="item__billing">$</text>
             <text class="entry-properties__separator">•</text>
 
-            <text id="duration" class="item__duration">00:33</text>
+            <text id="duration" class="item__duration">00:00:00</text>
 
             <line class="bottom-line"/>
           </section>

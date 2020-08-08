@@ -247,10 +247,12 @@ describe('Tracking', () => {
         lastTimeEntry = timeEntryBody({
           description: _.times(OPTIMAL_TEXTS_LENGTH, () => 'BumBada').join(''),
           isPlaying: false,
+          id: currentEntry.id - 1,
           pid: currentEntryProject.id,
         });
 
         api.fetchTimeEntries.mockResolvedValue([
+          currentEntry,
           lastTimeEntry,
         ]);
         api.fetchUserInfo.mockResolvedValue({id: 20});
@@ -347,6 +349,7 @@ describe('Tracking', () => {
 
       describe('when entry is null', () => {
         beforeEach(async () => {
+          api.fetchTimeEntries.mockResolvedValue([lastTimeEntry]);
           api.fetchCurrentEntry.mockResolvedValue(null);
           Transmitter.instanceSendMessage.mockClear();
           await tracking.initialize();

@@ -54,6 +54,7 @@ class App {
   _initialize() {
     this._showMemoryInfo();
     this._subscribeOnMessages();
+    setInterval(() => this._showMemoryInfo(), 500);
     memory.monitor.onmemorypressurechange = () => this._showMemoryInfo();
     this._showMemoryInfo();
   }

@@ -49,7 +49,7 @@
 }
 
 .entry-properties__separator {
-    x: 30%;
+    x: 20%;
     text-anchor: middle;
 }
 
@@ -61,12 +61,13 @@
 .item__duration {
     text-anchor: end;
     x: 100%;
-    width: 50%;
+    width: 75%;
 }
 
 .item-wrapper {
     width: 100%;
     height: 100%;
+    display: inline;
 }
 
 .item-wrapper--hidden {

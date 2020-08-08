@@ -1,5 +1,9 @@
-import {_el, ElementWrapper} from './ui/document-helper';
-import {gettext} from 'i18n';
+import {_el} from './ui/document-helper';
+import document from 'document';
+import {debug} from '../common/debug';
+import {lazyDecorator} from '../common/utils/lazy-decorator';
+import {EntriesLogTile} from './ui/entries-log-tile';
+import {formatTimeSection} from './ui/date-utils';
 
 const LOADER_STATE = Object.freeze({
   Enabled: 'enabled',
@@ -14,6 +18,7 @@ const BUTTON_IMAGE = Object.freeze({
 });
 
 const EID = Object.freeze({
+  ViewSwitch: 'view-switch',
   DeleteButton: 'delete-button',
   CurrentEntryProject: 'current-entry-project',
   CurrentEntryDescription: 'current-entry-description',
@@ -27,58 +32,18 @@ const EID = Object.freeze({
   LogContainer: 'time-entries-list-container',
 });
 
+const VIEW = Object.freeze({
+  EntriesLog: 0,
+  CurrentEntry: 1,
+});
+
 const LIST_TILE = Object.freeze({
   TimeEntry: 'time-entry',
 });
 
-const TIME_ENTRY_HIDDEN_TILE_CLASS = 'item-wrapper--hidden';
-const TIME_ENTRY_BILLABLE_CLASS = 'item__billing--billable';
 const TIMER_SECTION_ACTIVE_CLASS = 'current-entry__time--active';
 
-const formatTimeSection = (value) => {
-  return value > 9 ? `${value}` : `0${value}`;
-};
-
 const TIMER_UPDATE_INTERVAL_MS = 1000;
-
-/**
- * Allows to interact with a time entries log tile.
- */
-class EntriesLogTile {
-  /**
-   * Defines a tile element
-   * @param {HTMLElement|Document} tile
-   */
-  constructor(tile) {
-    this._tileElement = tile;
-    this.tile = new ElementWrapper(this._tileElement);
-
-    this.billing = new ElementWrapper(this._tileElement.getElementById('billable'));
-    this.project = new ElementWrapper(this._tileElement.getElementById('project'));
-    this.duration = new ElementWrapper(this._tileElement.getElementById('duration'));
-    this.description = new ElementWrapper(this._tileElement.getElementById('description'));
-    this.wrapper = new ElementWrapper(this._tileElement.getElementById('wrapper'));
-  }
-
-  /**
-   * Turns the tile into placeholder mode.
-   * The mode is used for the first tile which is not time entry.
-   */
-  enablePlaceholderMode() {
-    this.wrapper.addClass(TIME_ENTRY_HIDDEN_TILE_CLASS);
-  }
-
-  /**
-   * Turns the tile into loading mode, to make its loading smoother
-   */
-  displayLoading() {
-    this.description.text = gettext('log_description_loading');
-    this.project.text = gettext('log_project_loading');
-    this.duration.text = '--:--';
-    this.billing.removeClass(TIME_ENTRY_BILLABLE_CLASS);
-    this.wrapper.removeClass(TIME_ENTRY_HIDDEN_TILE_CLASS);
-  }
-}
 
 /**
  * User interface module
@@ -92,6 +57,14 @@ class UserInterface {
     this._currentEntryChangeSubscription = null;
     this._entriesLogChangeSubscription = null;
     this.tracking = tracking;
+    lazyDecorator(this, 'deleteButton', () => _el(EID.DeleteButton));
+    lazyDecorator(this, 'currentEntryProject', () => _el(EID.CurrentEntryProject));
+    lazyDecorator(this, 'stopResumeButton', () => _el(EID.StopResumeButton));
+    lazyDecorator(this, 'currentEntryDescription', () => _el(EID.CurrentEntryDescription));
+    lazyDecorator(this, 'timerHours', () => _el(EID.TimerHours));
+    lazyDecorator(this, 'timerMinutes', () => _el(EID.TimerMinutes));
+    lazyDecorator(this, 'timerSeconds', () => _el(EID.TimerSeconds));
+    lazyDecorator(this, 'loaderContainer', () => _el(EID.LoaderContainer));
     this.initialize();
   }
 
@@ -119,30 +92,31 @@ class UserInterface {
     this.attachEntriesLogBehavior();
     this._subscribeOnCurrentEntryChange();
     this._subscribeOnLogChange();
+    this.setView(VIEW.CurrentEntry);
   }
 
   /**
    * deactivates delete current entry button
    */
   disableDeleteButton() {
-    _el(EID.DeleteButton).hide();
-    _el(EID.DeleteButton).native.enabled = false;
+    this.deleteButton.hide();
+    this.deleteButton.native.enabled = false;
   }
 
   /**
    * Disables loader
    */
   disableLoader() {
-    _el('loader-container').hide();
+    this.loaderContainer.hide();
   }
 
   /**
    * Updates current entry info
    */
   displayCurrentEntryInfo() {
-    _el(EID.CurrentEntryProject).style.fill = this.currentEntry.color;
-    _el(EID.CurrentEntryProject).text = this.currentEntry.projectName;
-    _el(EID.CurrentEntryDescription).text = this.currentEntry.desc;
+    this.currentEntryProject.fill = this.currentEntry.color;
+    this.currentEntryProject.text = this.currentEntry.projectName;
+    this.currentEntryDescription.text = this.currentEntry.desc;
 
     this.updateCurrentEntryTimer();
   }
@@ -152,11 +126,11 @@ class UserInterface {
    */
   enableCurrentEntryResuming() {
     this._enableStopResumeButton();
-    _el(EID.StopResumeButton).onactivate = () => {
+    this.stopResumeButton.onactivate = () => {
       this.tracking.resumeCurrentEntry();
     };
-    _el(EID.StopResumeButton).native.getElementById('combo-button-icon').href = BUTTON_IMAGE.Play;
-    _el(EID.StopResumeButton).native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PlayPress;
+    this.stopResumeButton.native.getElementById('combo-button-icon').href = BUTTON_IMAGE.Play;
+    this.stopResumeButton.native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PlayPress;
   }
 
   /**
@@ -165,27 +139,27 @@ class UserInterface {
    */
   enableCurrentEntryPausing() {
     this._enableStopResumeButton();
-    _el(EID.StopResumeButton).onactivate = () => {
+    this.stopResumeButton.onactivate = () => {
       this.tracking.stopCurrentEntry();
     };
-    _el(EID.StopResumeButton).native.getElementById('combo-button-icon').href = BUTTON_IMAGE.Pause;
-    _el(EID.StopResumeButton).native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PausePress;
+    this.stopResumeButton.native.getElementById('combo-button-icon').href = BUTTON_IMAGE.Pause;
+    this.stopResumeButton.native.getElementById('combo-button-icon-press').href = BUTTON_IMAGE.PausePress;
   }
 
   /**
    * Configures delete button to delete current entry
    */
   enableDeleteButton() {
-    _el(EID.DeleteButton).onactivate = () => this.tracking.deleteCurrentEntry();
-    _el(EID.DeleteButton).show();
-    _el(EID.DeleteButton).native.enabled = true;
+    this.deleteButton.onactivate = () => this.tracking.deleteCurrentEntry();
+    this.deleteButton.show();
+    this.deleteButton.native.enabled = true;
   }
 
   /**
    * Enables loader
    */
   enableLoader() {
-    _el(EID.LoaderContainer).show();
+    this.loaderContainer.show();
     _el(EID.Loader).state = LOADER_STATE.Enabled;
   }
 
@@ -229,9 +203,9 @@ class UserInterface {
    */
   updateCurrentEntryTimer() {
     if (!this.isCurrentEntryPlaying) {
-      _el(EID.TimerHours).text = '--';
-      _el(EID.TimerMinutes).text = '--';
-      _el(EID.TimerSeconds).text = '--';
+      this.timerHours.text = '--';
+      this.timerMinutes.text = '--';
+      this.timerSeconds.text = '--';
       this._highlightActiveTimerSection();
       return;
     }
@@ -240,9 +214,9 @@ class UserInterface {
 
     this._highlightActiveTimerSection(difference);
 
-    _el(EID.TimerHours).text = formatTimeSection(difference.getUTCHours());
-    _el(EID.TimerMinutes).text = formatTimeSection(difference.getUTCMinutes());
-    _el(EID.TimerSeconds).text = formatTimeSection(difference.getUTCSeconds());
+    this.timerHours.text = formatTimeSection(difference.getUTCHours());
+    this.timerMinutes.text = formatTimeSection(difference.getUTCMinutes());
+    this.timerSeconds.text = formatTimeSection(difference.getUTCSeconds());
   }
 
   /**
@@ -267,8 +241,8 @@ class UserInterface {
    * @private
    */
   _disableStopResumeButton() {
-    _el(EID.StopResumeButton).hide();
-    _el(EID.StopResumeButton).native.enabled = false;
+    this.stopResumeButton.hide();
+    this.stopResumeButton.native.enabled = false;
   }
 
   /**
@@ -285,8 +259,8 @@ class UserInterface {
    * @private
    */
   _enableStopResumeButton() {
-    _el(EID.StopResumeButton).show();
-    _el(EID.StopResumeButton).native.enabled = true;
+    this.stopResumeButton.show();
+    this.stopResumeButton.native.enabled = true;
   }
 
   /**
@@ -340,10 +314,27 @@ class UserInterface {
   }
 
   /**
+   * Sets provided view
+   * @param {number} view
+   */
+  setView(view) {
+    _el(EID.ViewSwitch).value = view;
+  }
+
+  /**
    * Defines how entries list should behave
    * Attaches render processors.
    */
   attachEntriesLogBehavior() {
+    this.tracking.entriesLogDetailsSubject.subscribe(() => {
+      debug('entries details', this.tracking.entriesLogDetails.length);
+      this.tracking.entriesLogDetails.filter(({info}) => !!info).forEach(({displayedIn, info}) => {
+        const targetTileElement = document.getElementById(displayedIn);
+        new EntriesLogTile(targetTileElement)
+            .displayTimeEntryInfo(info);
+      });
+    });
+
     _el(EID.LogContainer).native.delegate = {
       getTileInfo: (position) => {
         const positionInEntriesLog = position - 1;
@@ -360,7 +351,12 @@ class UserInterface {
           return tile.enablePlaceholderMode();
         }
 
-        tile.displayLoading();
+        tile
+            .onClick(() => {
+              this.tracking.startEntryFromLog(id);
+              this.setView(VIEW.CurrentEntry);
+            })
+            .displayLoading();
 
         this.tracking.requestDetails({
           displayedIn: tileElement.id,
@@ -395,21 +391,21 @@ class UserInterface {
    * @private
    */
   _highlightActiveTimerSection(difference = new Date(0)) {
-    _el(EID.TimerHours).removeClass(TIMER_SECTION_ACTIVE_CLASS);
-    _el(EID.TimerMinutes).removeClass(TIMER_SECTION_ACTIVE_CLASS);
-    _el(EID.TimerSeconds).removeClass(TIMER_SECTION_ACTIVE_CLASS);
+    this.timerHours.removeClass(TIMER_SECTION_ACTIVE_CLASS);
+    this.timerMinutes.removeClass(TIMER_SECTION_ACTIVE_CLASS);
+    this.timerSeconds.removeClass(TIMER_SECTION_ACTIVE_CLASS);
 
     if (difference.getUTCHours()) {
-      _el(EID.TimerHours).addClass(TIMER_SECTION_ACTIVE_CLASS);
+      this.timerHours.addClass(TIMER_SECTION_ACTIVE_CLASS);
       return;
     }
 
     if (difference.getUTCMinutes()) {
-      _el(EID.TimerMinutes).addClass(TIMER_SECTION_ACTIVE_CLASS);
+      this.timerMinutes.addClass(TIMER_SECTION_ACTIVE_CLASS);
       return;
     }
 
-    _el(EID.TimerSeconds).addClass(TIMER_SECTION_ACTIVE_CLASS);
+    this.timerSeconds.addClass(TIMER_SECTION_ACTIVE_CLASS);
   }
 }
 
@@ -419,7 +415,6 @@ export {
   BUTTON_IMAGE,
   EID,
   LIST_TILE,
-  TIME_ENTRY_BILLABLE_CLASS,
-  TIME_ENTRY_HIDDEN_TILE_CLASS,
+  VIEW,
   TIMER_UPDATE_INTERVAL_MS,
 };

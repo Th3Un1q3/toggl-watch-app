@@ -1,5 +1,3 @@
-import cbor from 'cbor';
-
 const defaultCompare = (value1, value2) => {
   return value1 && (value1 === value2 || JSON.stringify(value1) === JSON.stringify(value2));
 };
@@ -63,7 +61,7 @@ class Subject {
    * @return {*}
    */
   get value() {
-    return cbor.decode(this._value);
+    return this._value;
   }
 
   /**
@@ -71,7 +69,7 @@ class Subject {
    * @param {*} newValue
    */
   set value(newValue) {
-    this._value = cbor.encode(newValue);
+    this._value = newValue;
   }
 
   /**

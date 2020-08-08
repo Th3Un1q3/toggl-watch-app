@@ -41,13 +41,13 @@ describe('Tracking on device', () => {
 
     beforeEach(() => {
       entryId = faker.random.number();
-      tracking.requestDetails({entryId, displayedAt: 'time-entry[0]'});
+      tracking.requestDetails({entryId, displayedIn: 'time-entry[0]'});
     });
 
     it('should not re-request the same entry', () => {
-      tracking.requestDetails({entryId, displayedAt: 'time-entry[1]'});
+      tracking.requestDetails({entryId, displayedIn: 'time-entry[1]'});
       expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(1);
-      tracking.requestDetails({entryId: faker.random.number(), displayedAt: 'time-entry[1]'});
+      tracking.requestDetails({entryId: faker.random.number(), displayedIn: 'time-entry[1]'});
       expect(Transmitter.instanceSendMessage).toHaveBeenCalledTimes(2);
     });
 
@@ -63,6 +63,17 @@ describe('Tracking on device', () => {
           entryId,
         },
       }));
+    });
+
+    describe('when entry details received', () => {
+      it('should update entriesLogDetails', () => {
+        const info = {id: entryId};
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.TIME_ENTRY_DETAILS, info);
+        Transmitter.emitMessageReceived(MESSAGE_TYPE.TIME_ENTRY_DETAILS, {id: faker.random.number()});
+        expect(tracking.entriesLogDetails).toEqual([
+          {entryId, displayedIn: 'time-entry[0]', info},
+        ]);
+      });
     });
   });
 
@@ -120,6 +131,64 @@ describe('Tracking on device', () => {
         start: now,
         isPlaying: true,
       }));
+    });
+  });
+
+  describe('.startEntryFromLog', () => {
+    let entryWithDetails;
+    let entryWithoutDetails;
+
+    beforeEach(() => {
+      entryWithDetails = timeEntryDetails(timeEntryBody());
+      entryWithoutDetails = timeEntryDetails(timeEntryBody());
+
+      tracking.entriesLogDetails = [
+        {
+          entryId: entryWithoutDetails.id,
+          displayedIn: 'time-entry[1]',
+        },
+        {
+          entryId: entryWithDetails.id,
+          displayedIn: 'time-entry[0]',
+          info: entryWithDetails,
+        },
+      ];
+    });
+
+    it('should update current entry with info', () => {
+      tracking.startEntryFromLog(entryWithDetails.id);
+      expect(tracking.currentEntry).toEqual(expect.objectContaining({
+        ..._.omit(entryWithDetails, 'id'),
+        start: Date.now(), isPlaying: true,
+      }));
+    });
+
+    it('should send start entry command', () => {
+      tracking.startEntryFromLog(entryWithDetails.id);
+      expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+        data: {
+          id: entryWithDetails.id,
+          start: now,
+        },
+      }));
+    });
+
+    describe('when log has no details', () => {
+      beforeEach(() => {
+        tracking.startEntryFromLog(entryWithoutDetails.id);
+      });
+
+      it('should nullify current entry', () => {
+        expect(tracking.currentEntry).toBeFalsy();
+      });
+      it('should send command to resume time entry', () => {
+        expect(Transmitter.instanceSendMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+          data: {
+            id: entryWithoutDetails.id,
+            start: now,
+          },
+        }));
+      });
     });
   });
 
@@ -192,7 +261,7 @@ describe('Tracking on device', () => {
       expect(entryUpdated).toHaveBeenLastCalledWith(currentEntry);
     });
 
-    describe('when it\'s not current entry received', () => {
+    describe('when it is not current entry received', () => {
       beforeEach(() => {
         currentEntry = {...timeEntryDetails(timeEntryBody()), cur: false};
       });

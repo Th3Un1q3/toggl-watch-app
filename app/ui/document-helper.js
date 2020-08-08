@@ -24,6 +24,17 @@ class ElementWrapper {
   }
 
   /**
+   * Changes value property of the wrapped element
+   * @param {*} newValue
+   */
+  set value(newValue) {
+    if (this._el.value === newValue) {
+      return;
+    }
+    this._el.value = newValue;
+  }
+
+  /**
    * Defines activate handler for screen and physical button
    * @param {function} handler
    */
@@ -53,6 +64,18 @@ class ElementWrapper {
    */
   get native() {
     return this._el;
+  }
+
+  /**
+   * Sets element fill
+   * @param {string} color
+   */
+  set fill(color) {
+    if (this._el.style.fill === color) {
+      return;
+    }
+
+    this._el.style.fill = color;
   }
 
   /**

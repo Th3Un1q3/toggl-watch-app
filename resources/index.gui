@@ -1,5 +1,5 @@
 <svg viewport-fill="black">
-  <use id="tracking" href="#panoramaview">
+  <use id="view-switch" href="#panoramaview">
     <use id="entries-list-view" href="#panoramaview-item">
       <use id="time-entries" href="#time-entries-list-screen"/>
     </use>

@@ -1,6 +1,6 @@
 import {MESSAGE_TYPE} from '../common/message-types';
 import {Subject} from '../common/observable';
-import {debug} from '../common/debug';
+import {dig} from '../common/utils/dig';
 
 /**
  * This module is responsible for tracking and works in pair with companion's tracking module.
@@ -13,7 +13,7 @@ class Tracking {
   constructor({transmitter}) {
     this.currentEntrySubject = new Subject(null);
     this.entriesLogContentsSubject = new Subject([], {changeOnly: true});
-    this.entriesLogDetailsSubject = new Subject([]);
+    this.entriesLogDetailsSubject = new Subject([], {changeOnly: true});
     this.transmitter = transmitter;
     this._subscribeOnEntryReceived();
     this._subscribeOnLogUpdate();
@@ -91,10 +91,10 @@ class Tracking {
       return;
     }
 
-    const awaitList = this.entriesLogDetails.filter(({displayedIn}) => displayedIn === displayedIn);
+    const awaitList = this.entriesLogDetails.filter(({displayedIn: slotToDisplay}) => slotToDisplay !== displayedIn);
 
     this.entriesLogDetails = awaitList.concat([{entryId, displayedIn}]);
-    debug('entries details', this.entriesLogDetails);
+
     this.transmitter.sendMessage({
       type: MESSAGE_TYPE.REQUEST_ENTRY_DETAILS,
       data: {entryId},
@@ -102,18 +102,50 @@ class Tracking {
   }
 
   /**
+   * Starts entry form entries log;
+   * @param {string} entryToResumeId
+   */
+  startEntryFromLog(entryToResumeId) {
+    const entryDetails = dig(
+        this.entriesLogDetails.find(({entryId}) => entryId === entryToResumeId),
+        'info',
+    );
+
+    this.currentEntry = entryDetails;
+    this.resumeCurrentEntry();
+
+    if (!this.currentEntry) {
+      this.sendStartEntryCommand({id: entryToResumeId, start: Date.now()});
+    }
+  }
+
+  /**
    * Sends a command to resume current(last) entry
    */
   resumeCurrentEntry() {
+    if (!dig(this.currentEntry, 'id')) {
+      return;
+    }
+
+    const {id, ...newEntryData} = this.currentEntry;
+
+    this.currentEntry = Object.assign({}, newEntryData, {id: null, start: Date.now(), isPlaying: true});
+    this.sendStartEntryCommand({id, start: Date.now()});
+  }
+
+  /**
+   * Sends a command to start entry
+   * @param {number} id
+   * @param {number} start
+   */
+  sendStartEntryCommand({id, start}) {
     this.transmitter.sendMessage({
       type: MESSAGE_TYPE.START_TIME_ENTRY,
       data: {
-        id: this.currentEntry.id,
-        start: Date.now(),
+        id,
+        start,
       },
     });
-
-    this.currentEntry = {...this.currentEntry, start: Date.now(), isPlaying: true};
   }
 
   /**
@@ -149,6 +181,11 @@ class Tracking {
       if (entry.cur) {
         this.currentEntry = entry;
       }
+
+      this.entriesLogDetails = this.entriesLogDetails.map((details) => ({
+        ...details,
+        ...(details.entryId === entry.id ? {info: entry} : {}),
+      }));
     });
   }
 }

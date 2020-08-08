@@ -8,15 +8,25 @@ import {
   LOADER_STATE,
   TIMER_UPDATE_INTERVAL_MS,
   EID,
-  LIST_TILE, TIME_ENTRY_HIDDEN_TILE_CLASS, TIME_ENTRY_BILLABLE_CLASS,
+  LIST_TILE,
+  VIEW,
 } from './ui';
 import {Subject} from '../common/observable';
 import {timeEntryDetails} from '../companion/tracking';
 import {timeEntryBody} from '../utils/factories/time-entries';
 import {projectBody} from '../utils/factories/projects';
 import {gettext} from 'i18n';
+import {Tracking} from './tracking';
+import {
+  BACKGROUND_HIGHLIGHT_CLASS, REGULAR_TEXT_COLOR,
+  TIME_ENTRY_BILLABLE_CLASS,
+  TIME_ENTRY_HIDDEN_TILE_CLASS
+} from './ui/entries-log-tile';
+
+jest.mock('./tracking');
 
 describe('UI module', () => {
+  let viewSwitch;
   let configurationRequired;
   let loader;
   let project;
@@ -63,6 +73,7 @@ describe('UI module', () => {
   };
 
   const initializeAllElements = () => {
+    viewSwitch = document.getElementById(EID.ViewSwitch);
     configurationRequired = document.getElementById(EID.ConfigurationInstruction);
     loader = document.getElementById(EID.Loader);
     project = document.getElementById(EID.CurrentEntryProject);
@@ -77,14 +88,15 @@ describe('UI module', () => {
   };
 
   const initializeUI = () => {
-    tracking = {
-      currentEntrySubject: new Subject(),
-      entriesLogContentsSubject: new Subject(),
-      deleteCurrentEntry: jest.fn(),
-      resumeCurrentEntry: jest.fn(),
-      stopCurrentEntry: jest.fn(),
-      requestDetails: jest.fn(),
-    };
+    tracking = Object.assign(
+        new Tracking({}),
+        {
+          currentEntrySubject: new Subject(),
+          entriesLogContentsSubject: new Subject(),
+          entriesLogDetailsSubject: new Subject(),
+          entriesLogDetails: [],
+        },
+    );
     document._reset();
     uiInstance = new UserInterface({tracking});
   };
@@ -106,8 +118,71 @@ describe('UI module', () => {
       expect(tracking.currentEntrySubject.hasSubscriptions).toBeTruthy();
     });
 
+    it('should switch to current entry view', () => {
+      expect(viewSwitch.value).toEqual(VIEW.CurrentEntry);
+    });
+
     describe('if loading takes longer than 10 seconds', () => {
       it.todo('should show check your connection message');
+    });
+  });
+
+  describe('on entries details update', () => {
+    let timeEntry;
+    beforeEach(() => {
+      timeEntry = timeEntryDetails(timeEntryBody({
+        start: '2020-05-03T10:43:29+00:00',
+        stop: '2020-05-03T11:53:49+00:00',
+        billable: true,
+      }), projectBody());
+
+      tracking.entriesLogDetails = [
+        {entryId: 1010101, displayedIn: 'time-entry[0]'},
+        {entryId: timeEntry.id, displayedIn: entryLogTile.id, info: timeEntry},
+      ];
+
+      tracking.entriesLogDetailsSubject.next();
+    });
+
+    it('should set project name', () => {
+      expect(entryLogTile.getElementById('project')).toHaveProperty('text', timeEntry.projectName);
+    });
+
+    it('should set project color', () => {
+      expect(entryLogTile.getElementById('project')).toHaveStyle({'fill': timeEntry.color});
+    });
+
+    it('should set entry description', () => {
+      expect(entryLogTile.getElementById('description')).toHaveProperty('text', timeEntry.desc);
+    });
+
+    it('should set formatted entry duration', () => {
+      expect(entryLogTile.getElementById('duration')).toHaveProperty('text', '01:10:20');
+    });
+
+    it('should set entry billable', () => {
+      expect(entryLogTile.getElementById('billable')).toHaveClass(TIME_ENTRY_BILLABLE_CLASS);
+    });
+
+    describe('when it is non billable entry received', () => {
+      beforeEach(() => {
+        const nonBillableEntry = timeEntryDetails(timeEntryBody({
+          start: '2020-05-03T10:43:29+00:00',
+          stop: '2020-05-03T11:53:49+00:00',
+          billable: false,
+        }), projectBody());
+
+        tracking.entriesLogDetails = [
+          {entryId: 1010101, displayedIn: 'time-entry[0]'},
+          {entryId: nonBillableEntry.id, displayedIn: entryLogTile.id, info: nonBillableEntry},
+        ];
+
+        tracking.entriesLogDetailsSubject.next();
+      });
+
+      it('should set entry to non billable', () => {
+        expect(entryLogTile.getElementById('billable')).not.toHaveClass(TIME_ENTRY_BILLABLE_CLASS);
+      });
     });
   });
 
@@ -124,6 +199,7 @@ describe('UI module', () => {
 
     describe('list renderer', () => {
       beforeEach(() => {
+        viewSwitch.value = VIEW.EntriesLog;
         tracking.entriesLogContentsSubject.next(tracking.entriesLogContents);
       });
 
@@ -146,7 +222,10 @@ describe('UI module', () => {
         beforeEach(() => {
           entryPlace = _.random(1, tracking.entriesLogContents.length);
           expectedEntryId = tracking.entriesLogContents[entryPlace - 1];
-          entriesLog.delegate.configureTile(entryLogTile, entriesLog.delegate.getTileInfo(entryPlace));
+          _.times(
+              2,
+              () => entriesLog.delegate.configureTile(entryLogTile, entriesLog.delegate.getTileInfo(entryPlace)),
+          );
         });
 
         it('should not hide a tile', () => {
@@ -167,6 +246,10 @@ describe('UI module', () => {
           );
         });
 
+        it('should set default project color', () => {
+          expect(entryLogTile.getElementById('project')).toHaveStyle({'fill': REGULAR_TEXT_COLOR});
+        });
+
         it('should set duration to "--:--"', () => {
           expect(entryLogTile.getElementById('duration')).toHaveProperty(
               'text',
@@ -185,11 +268,41 @@ describe('UI module', () => {
         });
 
         it('should call tracker.requestDetails', () => {
-          expect(tracking.requestDetails).toHaveBeenCalledTimes(1);
+          expect(tracking.requestDetails).toHaveBeenCalledTimes(2);
           expect(tracking.requestDetails).toHaveBeenLastCalledWith({
             entryId: expectedEntryId,
             displayedIn: entryLogTile.id,
           });
+        });
+
+        it('should switch to current entry view', () => {
+          expect(viewSwitch.value).toEqual(VIEW.EntriesLog);
+          entryLogTile.click();
+          expect(viewSwitch.value).toEqual(VIEW.CurrentEntry);
+        });
+
+
+        it('should call tracking startEntryFromLog on click', () => {
+          expect(tracking.startEntryFromLog).not.toHaveBeenCalled();
+          entryLogTile.click();
+          expect(tracking.startEntryFromLog).toHaveBeenCalledTimes(1);
+          expect(tracking.startEntryFromLog).toHaveBeenLastCalledWith(expectedEntryId);
+        });
+
+        it('should attach highlight to the tile', () => {
+          expect(entryLogTile.getElementById('background')).not.toHaveClass(BACKGROUND_HIGHLIGHT_CLASS);
+          entryLogTile.onmousedown();
+          jest.advanceTimersByTime(200);
+          expect(entryLogTile.getElementById('background')).toHaveClass(BACKGROUND_HIGHLIGHT_CLASS);
+          entryLogTile.onmousedown();
+          expect(entryLogTile.getElementById('background')).toHaveClass(BACKGROUND_HIGHLIGHT_CLASS);
+          jest.advanceTimersByTime(500);
+          expect(entryLogTile.getElementById('background')).not.toHaveClass(BACKGROUND_HIGHLIGHT_CLASS);
+          entryLogTile.onmousedown();
+
+          expect(entryLogTile.getElementById('background')).toHaveClass(BACKGROUND_HIGHLIGHT_CLASS);
+          entryLogTile.onmouseup();
+          expect(entryLogTile.getElementById('background')).not.toHaveClass(BACKGROUND_HIGHLIGHT_CLASS);
         });
       });
     });
@@ -231,6 +344,7 @@ describe('UI module', () => {
       assertDeleteButtonIsDisabled();
 
       it('should disable stop-resume', () => {
+        expect(entriesLog.value).toEqual();
         expect(stopResumeButton.enabled).toBeFalsy();
         stopResumeButton.click();
 

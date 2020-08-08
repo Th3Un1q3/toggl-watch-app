@@ -52,7 +52,7 @@ const timeEntryDetails = (timeEntry, project) => {
   }
 
   const start = Date.parse(timeEntry.start);
-  const stop = timeEntry.stop ? {stop: Date.parse(timeEntry.start)} : {};
+  const stop = timeEntry.stop ? {stop: Date.parse(timeEntry.stop)} : {};
 
   const isPlaying = !timeEntry.stop;
 
@@ -69,7 +69,7 @@ const timeEntryDetails = (timeEntry, project) => {
     isPlaying,
     desc,
     start,
-    stop,
+    ...stop,
     ...projectInfo,
   };
 };
@@ -122,17 +122,19 @@ class Tracking {
     this._timeEntriesLog.subscribe(() => {
       this.transmitter.sendMessage({
         type: MESSAGE_TYPE.ENTRIES_LOG_UPDATE,
-        data: this.entriesLogIds,
+        data: this.entriesLogIds.slice(1),
       });
     }, {immediate: true});
   }
 
   /**
-   * Returns a list of entries log items ids
+   * Returns a list of entries log items ids except current one
    * @return {number[]}
    */
   get entriesLogIds() {
-    return Object.keys(this.timeEntriesLog).map((id) => parseInt(id, 10));
+    return Object.keys(this.timeEntriesLog)
+        .map((id) => parseInt(id, 10))
+        .sort((a, b) => b-a);
   }
 
   /**
@@ -191,31 +193,47 @@ class Tracking {
    * @private
    */
   _attachCommandsProcessing() {
-    // TODO: extract processing functions to methods
     this.transmitter.onMessage(MESSAGE_TYPE.STOP_TIME_ENTRY, async ({stop, id}) => {
       await this.stopTimeEntry(id, stop);
     });
 
     this.transmitter.onMessage(MESSAGE_TYPE.REQUEST_ENTRY_DETAILS, ({entryId}) => {
-      const entryFromLog = this.timeEntriesLog[entryId];
-
-      this.sendTimeEntryDetails(entryFromLog);
+      this.sendTimeEntryDetails(this.timeEntriesLog[entryId]);
     });
 
     this.transmitter.onMessage(MESSAGE_TYPE.START_TIME_ENTRY, async ({start, id}) => {
-      await this._api.createTimeEntry({
-        wid: this.user && this.user.default_workspace_id,
-        ...this.timeEntriesLog[id],
-        stop: null,
-        start: new Date(start).toISOString(),
-      });
+      await this.startTimeEntry(id, start);
     });
 
     this.transmitter.onMessage(MESSAGE_TYPE.DELETE_TIME_ENTRY, async ({id}) => {
-      if (id === this.currentEntryId) {
-        await this._api.deleteTimeEntry(this.currentEntry);
-      }
-      await this._launchEntriesRefreshing();
+      await this.deleteTimeEntry(id);
+    });
+  }
+
+  /**
+   * Deletes current entry
+   * @param {number} id
+   * @return {Promise<void>}
+   */
+  async deleteTimeEntry(id) {
+    if (id === this.currentEntryId) {
+      await this._api.deleteTimeEntry(this.currentEntry);
+    }
+    await this._launchEntriesRefreshing();
+  }
+
+  /**
+   *  Starts time entry based on log item found by its id
+   * @param {number} id
+   * @param {number} start
+   * @return {Promise<void>}
+   */
+  async startTimeEntry(id, start) {
+    this.currentEntry = await this._api.createTimeEntry({
+      wid: this.user && this.user.default_workspace_id,
+      ...this.timeEntriesLog[id],
+      stop: null,
+      start: new Date(start).toISOString(),
     });
   }
 
@@ -304,7 +322,7 @@ class Tracking {
    * @return {*}
    */
   get lastEntry() {
-    const lastEntryId = this.entriesLogIds.reduce((last, current) => current > last ? current : last, 0);
+    const lastEntryId = this.entriesLogIds[0];
     return this.timeEntriesLog[lastEntryId];
   }
 
