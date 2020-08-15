@@ -13,6 +13,7 @@ describe('Subject', () => {
   it('should not be possible to subscribe without handler', () => {
     expect(() => new Subject(initialValue).subscribe()).toThrow(new Error('Provide handler function to .subscribe()'));
   });
+
   it('should only emit when value changed', () => {
     const subject = new Subject(initialValue, {changeOnly: true});
     subject.subscribe(handler);

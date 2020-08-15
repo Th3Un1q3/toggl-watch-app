@@ -11,9 +11,10 @@ class Tracking {
    * @param {Transmitter} messages transmitter instance
    */
   constructor({transmitter}) {
+    this._entriesLogDetails = [];
     this.currentEntrySubject = new Subject(null);
-    this.entriesLogContentsSubject = new Subject([], {changeOnly: true});
-    this.entriesLogDetailsSubject = new Subject([], {changeOnly: true});
+    this.entriesLogContentsSubject = new Subject(null);
+    this.entriesLogDetailsSubject = new Subject(null);
     this.transmitter = transmitter;
     this._subscribeOnEntryReceived();
     this._subscribeOnLogUpdate();
@@ -32,7 +33,7 @@ class Tracking {
    * @return {*}
    */
   get entriesLogDetails() {
-    return this.entriesLogDetailsSubject.value;
+    return this._entriesLogDetails;
   }
 
   /**
@@ -40,7 +41,8 @@ class Tracking {
    * @param {Object[]} updatedList
    */
   set entriesLogDetails(updatedList) {
-    this.entriesLogDetailsSubject.next(updatedList);
+    this._entriesLogDetails = updatedList;
+    this.entriesLogDetailsSubject.next(null);
   }
 
   /**
@@ -182,11 +184,20 @@ class Tracking {
         this.currentEntry = entry;
       }
 
-      this.entriesLogDetails = this.entriesLogDetails.map((details) => ({
-        ...details,
-        ...(details.entryId === entry.id ? {info: entry} : {}),
-      }));
+      this._populateLogWithDetails(entry);
     });
+  }
+
+  /**
+   * Pushed entry details to the log
+   * @param {Object} entry
+   * @private
+   */
+  _populateLogWithDetails(entry) {
+    this.entriesLogDetails = this.entriesLogDetails.map((details) => ({
+      ...details,
+      ...(details.entryId === entry.id ? { info: entry } : {}),
+    }));
   }
 }
 
