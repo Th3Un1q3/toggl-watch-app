@@ -37,7 +37,7 @@
     "eslint-plugin-import": "^2.22.0",
     "jest": "^26.4.2",
     "jest-environment-jsdom-sixteen": "^1.0.3",
-    "@testing-library/jest-dom": "^5.11.3",
+    "@testing-library/jest-dom": "^5.11.4",
     "flush-promises": "^1.0.2"
   },
   "scripts": {
