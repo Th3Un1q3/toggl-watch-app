@@ -27,7 +27,7 @@
     "faker": "^5.1.0",
     "lodash": "^4.17.20",
     "@babel/preset-env": "^7.11.5",
-    "@fitbit/sdk": "~4.1.0",
+    "@fitbit/sdk": "~4.2.1",
     "babel-core": "^6.26.3",
     "babel-jest": "^26.3.0",
     "babel-preset-env": "^1.7.0",
