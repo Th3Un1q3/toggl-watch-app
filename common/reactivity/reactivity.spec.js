@@ -1,6 +1,6 @@
 import faker from 'faker';
 
-import {Subject} from './observable';
+import {Subject} from './subject';
 
 describe('Subject', () => {
   const handler = jest.fn();

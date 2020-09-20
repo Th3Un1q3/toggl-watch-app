@@ -1,6 +1,6 @@
-import {MESSAGE_TYPE} from '../common/message-types';
+import {MESSAGE_TYPE} from '../common/constants/message-types';
 import {settingsStorage} from 'settings';
-import {API_TOKEN_SETTINGS_STORAGE_KEY} from '../common/constants';
+import {API_TOKEN_SETTINGS_STORAGE_KEY} from '../common/constants/settings';
 import {COMPANION_QUEUE_SIZE, Transmitter} from '../common/transmitter';
 import {API} from './api';
 import {Tracking} from './tracking';

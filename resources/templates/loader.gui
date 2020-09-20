@@ -1,0 +1,12 @@
+<svg>
+  <defs>
+    <link rel="stylesheet" href="loader.css" />
+    <link rel="import" href="/mnt/sysassets/widgets/spinner_widget.gui" />
+
+    <symbol id="loader-container">
+      <rect class="loader__wrapper">
+        <use id="rotation" class="loader" href="#spinner"/>
+      </rect>
+    </symbol>
+  </defs>
+</svg>

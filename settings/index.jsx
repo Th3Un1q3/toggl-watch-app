@@ -1,5 +1,5 @@
 import APIToken from './APIToken';
-import { API_TOKEN_SETTINGS_STORAGE_KEY } from '../common/constants';
+import { API_TOKEN_SETTINGS_STORAGE_KEY } from '../common/constants/settings';
 
 const ApplicationConfiguration = (props) => <Section
   title={<Text bold align="center">Configure your app</Text>}>

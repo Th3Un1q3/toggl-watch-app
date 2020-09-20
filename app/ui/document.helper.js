@@ -3,7 +3,7 @@ import document from 'document';
 /**
  * Element wrapper contains basic operations on elements
  */
-class ElementWrapper {
+class ElementWrapper { // TODO: make it flyweight
   /**
    * Initializes a wrapper instance
    * @param {HTMLElement} element
@@ -83,6 +83,8 @@ class ElementWrapper {
    * @param {string} className
    */
   addClass(className) {
+    [1, 2, 3].includes(2);
+
     if (this._classList.includes(className)) {
       return;
     }

@@ -3,10 +3,10 @@
   "fitbit": {
     "appUUID": "56da955a-6901-45ab-9b0e-460548a5a464",
     "appType": "app",
-    "appDisplayName": "Toggl",
+    "appDisplayName": "Toggl Track",
     "iconFile": "resources/images/icon.png",
     "wipeColor": "#607d8b",
-    "_TODO                                                    ": "change color and icon",
+    "!!_____TODO": "change color and icon",
     "requestedPermissions": [
       "access_internet"
     ],
@@ -18,7 +18,7 @@
     ],
     "i18n": {
       "en": {
-        "name": "Toggl"
+        "name": "Toggl Track"
       }
     },
     "defaultLanguage": "en-US"
@@ -27,7 +27,6 @@
     "faker": "^5.1.0",
     "lodash": "^4.17.20",
     "@babel/preset-env": "^7.11.5",
-    "@fitbit/sdk": "~4.2.1",
     "babel-core": "^6.26.3",
     "babel-jest": "^26.3.0",
     "babel-preset-env": "^1.7.0",
@@ -36,12 +35,17 @@
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-import": "^2.22.0",
     "jest": "^26.4.2",
+    "jest-watch-typeahead": "^0.6.0",
     "jest-environment-jsdom-sixteen": "^1.0.3",
     "@testing-library/jest-dom": "^5.11.4",
-    "flush-promises": "^1.0.2"
+    "flush-promises": "^1.0.2",
+    "@fitbit/sdk": "~4.2.1",
+    "@fitbit/sdk-cli": "^1.7.0"
   },
   "scripts": {
     "test:unit": "jest",
-    "lint": "eslint . --ignore-pattern node_modules/"
+    "lint": "eslint .",
+    "cli": "fitbit",
+    "build": "fitbit-build"
   }
 }

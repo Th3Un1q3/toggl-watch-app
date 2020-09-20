@@ -1,0 +1,11 @@
+<svg>
+  <link rel="stylesheet" href="configuration-required.css" />
+  <link rel="import" href="/mnt/sysassets/widgets/dynamic_textarea.gui"/>
+  <link rel="import" href="/mnt/sysassets/widgets/mixed_text_widget.gui"/>
+  <rect id="configuration-instruction">
+    <use href="#mixed-text-center-mid" height="100%" fill="fb-yellow">
+      <set href="#header/text" attributeName="text-buffer" to="_token_config_required_title"/>
+      <set href="#copy/text" attributeName="text-buffer" to="_token_config_required_body"/>
+    </use>
+  </rect>
+</svg>

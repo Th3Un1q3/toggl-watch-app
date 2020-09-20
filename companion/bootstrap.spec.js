@@ -1,8 +1,8 @@
 import _ from 'lodash';
 import {settingsStorage, _resetSettings} from 'settings';
-import {MESSAGE_TYPE} from '../common/message-types';
+import {MESSAGE_TYPE} from '../common/constants/message-types';
 import {bootstrap} from './bootstrap';
-import {API_TOKEN_SETTINGS_STORAGE_KEY} from '../common/constants';
+import {API_TOKEN_SETTINGS_STORAGE_KEY} from '../common/constants/settings';
 import {Transmitter, COMPANION_QUEUE_SIZE} from '../common/transmitter';
 import {API} from './api';
 import {Tracking} from './tracking';

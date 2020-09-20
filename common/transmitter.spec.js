@@ -1,5 +1,5 @@
 import {peerSocket, _resetPeerSocket} from 'messaging';
-import {MESSAGE_TYPE} from './message-types';
+import {MESSAGE_TYPE} from './constants/message-types';
 import {DEVICE_QUEUE_SIZE, SUSPENSION_BUFFER_BYTES, Transmitter} from './transmitter';
 import {timeEntryBody} from '../utils/factories/time-entries';
 

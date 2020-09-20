@@ -1,15 +1,20 @@
-<svg>
+<svg viewport-fill="fb-black">
+  <link rel="stylesheet" href="entries-log.css" />
+  <link rel="import" href="/mnt/sysassets/widgets_common.gui" />
+  <link rel="import" href="/mnt/sysassets/widgets/baseview_widget.gui" />
+  <link rel="import" href="/mnt/sysassets/widgets/panoramaview_widget.gui" />
+  <link rel="import" href="/mnt/sysassets/widgets/pagination_dots.gui" />
+  <link rel="import" href="/mnt/sysassets/widgets/tile_list_widget.gui" />
+
   <defs>
-    <link rel="stylesheet" href="time-entries-list.css" />
-    <link rel="import" href="/mnt/sysassets/widgets/tile_list_widget.gui" />
     <symbol id="time-entry-item" href="#tile-list-item" focusable="true"
             pointer-events="visible" system-events="all" display="none">
 
       <rect id="wrapper" class="item-wrapper item-wrapper--hidden">
         <rect id="background" class="item__background" />
         <section class="item__content-container">
-          <text id="description" class="item__description">-----------------------------</text>
-          <text id="project" class="item__project">------------------------------------</text>
+          <text id="description" class="item__description">--------------------------------------------------------------------</text>
+          <text id="project" class="item__project">---------------------------------------------------------------------</text>
           <section class="item__entry-properties">
             <text id="billable" class="item__billing">$</text>
             <text class="entry-properties__separator">•</text>
@@ -19,11 +24,13 @@
             <line class="bottom-line"/>
           </section>
         </section>
-        <image class="item__control-icon" href="images/fitbit_icons/btn_combo_play_p.png" />
+        <image class="item__control-icon" href="./resources/images/fitbit_icons/btn_combo_play_p.png" />
       </rect>
     </symbol>
+  </defs>
 
-    <symbol id="time-entries-list-screen">
+  <use id="view-switch" href="#panoramaview">
+    <use id="entries-list-view" href="#panoramaview-item">
       <use id="time-entries-list-container" class="time-entry-list" href="#tile-list">
         <var id="virtual" value="1" />
         <var id="separator-height-bottom" value="2" />
@@ -41,6 +48,16 @@
           <use id="time-entry[9]" href="#time-entry-item" class="time-entry-list__item" />
         </use>
       </use>
-    </symbol>
-  </defs>
+    </use>
+
+    <use id="current-entry-view" href="#panoramaview-item">
+      <text>Current entry</text>
+    </use>
+
+    <use id="active-screen-indication" href="#pagination-widget">
+      <use href="#pagination-dot" />
+      <use href="#pagination-dot" />
+      <use href="#pagination-highlight-dot" />
+    </use>
+  </use>
 </svg>

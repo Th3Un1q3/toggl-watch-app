@@ -1,3 +1,4 @@
+// TODO: move out of here
 const TOKEN_LENGTH = 32;
 const HEX_SYMBOLS = '0123456789ABCDEFabcdef';
 

@@ -1,36 +1,12 @@
-import {MESSAGE_TYPE} from '../common/message-types';
 import {gettext} from 'i18n';
+import {MESSAGE_TYPE} from '../common/constants/message-types';
 import {debug} from '../common/debug';
-import {Subject} from '../common/observable';
-
-/**
- * Time entry message.
- * @typedef {Object} TimeEntryMessage
- * @property {boolean} cur - Indicates whether this is a current time entry.
- * @property {boolean} isPlaying - Indicates that transferred entry is now launched.
- * @property {boolean} bil - Indicates if time entry is billable.
- * @property {string} color - The hex-color of the project.
- * @property {number} start - Time stamp of entry start(ms, unix).
- * @property {string} projectName - The name of the project time entry attached to.
- * @property {string} desc - Description of time entry to be displayed(up to 64 char).
- */
-
-const NO_PROJECT_COLOR = '#a0a0a0';
+import {EMPTY_TIME_ENTRY, NO_PROJECT_INFO} from '../common/constants/default-time-entry';
+import {Subject} from '../common/reactivity/subject';
 
 const ENTRIES_REFRESH_INTERVAL = 15000;
 
-const OPTIMAL_TEXTS_LENGTH = 64;
-
-const NO_PROJECT_INFO = {
-  color: NO_PROJECT_COLOR,
-  projectName: gettext('no_project'),
-};
-
-const EMPTY_TIME_ENTRY = {
-  desc: gettext('no_description'),
-  bil: false,
-  ...NO_PROJECT_INFO,
-};
+const OPTIMAL_TEXTS_LENGTH = 63;
 
 const entryUniquenessId = (timeEntry) => {
   const {id, start, stop, pid, description} = timeEntry || {};
@@ -124,7 +100,7 @@ class Tracking {
         type: MESSAGE_TYPE.ENTRIES_LOG_UPDATE,
         data: this.entriesLogIds.slice(1),
       });
-    }, {immediate: true});
+    });
   }
 
   /**
@@ -339,7 +315,5 @@ export {
   Tracking,
   timeEntryDetails,
   ENTRIES_REFRESH_INTERVAL,
-  NO_PROJECT_COLOR,
-  NO_PROJECT_INFO,
   OPTIMAL_TEXTS_LENGTH,
 };

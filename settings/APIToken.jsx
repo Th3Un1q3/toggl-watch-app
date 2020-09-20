@@ -1,8 +1,10 @@
-import { validateToken } from '../common/api-token-validator';
-import { API_TOKEN_SETTINGS_STORAGE_KEY } from '../common/constants';
+import { validateToken } from './api-token-validator';
+import { API_TOKEN_SETTINGS_STORAGE_KEY } from '../common/constants/settings';
+
+// TODO: apply translations
 
 const HelpSection = () => <Text>
-  Go to <Text bold>profile > Profile settings > API Token</Text>.
+  Go to <Text bold>profile &gt; Profile settings &gt; API Token</Text>.
   Also you can find your API Token on page <Link source="https://toggl.com/app/profile">toggl.com/app/profile</Link>.
 </Text>;
 

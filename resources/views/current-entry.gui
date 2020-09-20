@@ -1,10 +1,19 @@
-<svg>
-  <defs>
-    <link rel="stylesheet" href="current-entry.css" />
-    <link rel="import" href="/mnt/sysassets/widgets/combo_button_widget.gui"/>
-    <link rel="import" href="/mnt/sysassets/widgets/marquee_text_widget.gui" />
-    <symbol id="current-entry-screen">
-      <rect class="current-entry">
+<svg viewport-fill="fb-black">
+  <link rel="stylesheet" href="current-entry.css" />
+  <link rel="import" href="/mnt/sysassets/widgets/combo_button_widget.gui"/>
+  <link rel="import" href="/mnt/sysassets/widgets/marquee_text_widget.gui" />
+  <link rel="import" href="/mnt/sysassets/widgets/panoramaview_widget.gui" />
+  <link rel="import" href="/mnt/sysassets/widgets/pagination_dots.gui" />
+  <link rel="import" href="/mnt/assets/resources/templates/loader.gui" />
+
+  <use id="view-switch" href="#panoramaview">
+    <use id="entries-list-view" href="#panoramaview-item">
+<!--      TODO add translation-->
+      <text>Entries log</text>
+    </use>
+
+    <use id="current-entry-view" href="#panoramaview-item">
+      <rect id="current-entry" class="current-entry">
         <use
                 id="current-entry-project"
                 class="current-entry__project"
@@ -47,21 +56,28 @@
         <section id="current-entry-controls">
           <use id="delete-button" class="action-button--delete" href="#combo-button-upper-right">
             <set href="combo-button-icon" attributeName="href"
-                 to="images/fitbit_icons/btn_combo_x_p.png"/>
+                 to="./resources/images/fitbit_icons/btn_combo_x_p.png"/>
             <set href="combo-button-icon-press" attributeName="href"
-                 to="images/fitbit_icons/btn_combo_x_press_p.png"/>
+                 to="./resources/images/fitbit_icons/btn_combo_x_press_p.png"/>
           </use>
 
           <use id="stop-resume-button" class="action-button--stop-resume" href="#combo-button-lower-right">
             <set href="combo-button-icon" attributeName="href"
-                 to="images/fitbit_icons/btn_combo_pause_p.png"/>
+                 to="./resources/images/fitbit_icons/btn_combo_pause_p.png"/>
             <set href="combo-button-icon-press" attributeName="href"
-                 to="images/fitbit_icons/btn_combo_pause_press_p.png"/>
+                 to="./resources/images//fitbit_icons/btn_combo_pause_press_p.png"/>
             <set href="combo-button-stroke" attributeName="display" to="inline"/>
           </use>
         </section>
       </rect>
-    </symbol>
-  </defs>
+    </use>
 
+    <use id="active-screen-indication" href="#pagination-widget">
+      <use href="#pagination-dot" />
+      <use href="#pagination-dot" />
+      <use href="#pagination-highlight-dot" />
+    </use>
+  </use>
+
+  <use id="loader" href="#loader-container" />
 </svg>

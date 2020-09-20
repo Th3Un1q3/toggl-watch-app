@@ -1,8 +1,9 @@
 import {DEVICE_QUEUE_SIZE, Transmitter} from '../common/transmitter';
-import {Tracking} from './tracking';
-import {memory} from 'system';
-import {MESSAGE_TYPE} from '../common/message-types';
+import {MESSAGE_TYPE} from '../common/constants/message-types';
 import {UserInterface} from './ui';
+import {TimeEntryRepository} from './time-entry.repository';
+import {memory} from 'system';
+import {showMemoryInfo} from './development/monitoring';
 
 /**
  * Application module manages how different modules setup
@@ -17,7 +18,7 @@ class App {
     }
 
     this._transmitter = null;
-    this._tracking = null;
+    this._entriesRepo = null;
     App._instance = this;
 
     this._initialize();
@@ -32,19 +33,19 @@ class App {
   }
 
   /**
-   * Setups the tracking module
-   * @return {Tracking}
-   */
-  get tracking() {
-    return this._tracking = this._tracking || new Tracking({transmitter: this.transmitter});
-  }
-
-  /**
    * Initiates ui module to work with tracking
    * @return {*|UserInterface}
    */
   get ui() {
-    return this._ui = this._ui || new UserInterface({tracking: this.tracking});
+    return this._ui = this._ui || new UserInterface({entriesRepo: this.entriesRepo});
+  }
+
+  /**
+   * Initiates time entries repository
+   * @return {TimeEntryRepository}
+   */
+  get entriesRepo() {
+    return this._entriesRepo = this._entriesRepo || new TimeEntryRepository({transmitter: this.transmitter});
   }
 
   /**
@@ -52,11 +53,10 @@ class App {
    * @private
    */
   _initialize() {
-    this._showMemoryInfo();
+    showMemoryInfo();
     this._subscribeOnMessages();
-    setInterval(() => this._showMemoryInfo(), 500);
-    memory.monitor.onmemorypressurechange = () => this._showMemoryInfo();
-    this._showMemoryInfo();
+    memory.monitor.onmemorypressurechange = () => showMemoryInfo();
+    showMemoryInfo();
   }
 
   /**
@@ -64,6 +64,7 @@ class App {
    * @private
    */
   _subscribeOnMessages() {
+    // TODO: move to state repo
     this.transmitter.onMessage(MESSAGE_TYPE.API_TOKEN_STATUS_UPDATE, ({configured}) => {
       if (!configured) {
         return this.ui.showConfigurationRequired();
@@ -73,19 +74,6 @@ class App {
     });
   }
 
-  /**
-   * Show current memory consumption
-   * @private
-   */
-  _showMemoryInfo() {
-    const memoryInfo = {
-      used: memory.js.used,
-      total: memory.js.total,
-      peak: memory.js.peak,
-    };
-
-    console.log(`Memory: ${JSON.stringify(memoryInfo)}`);
-  }
 
   /**
    * A accessor which gets us to the app module

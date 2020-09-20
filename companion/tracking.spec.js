@@ -2,17 +2,17 @@ import _ from 'lodash';
 import faker from 'faker';
 import {
   ENTRIES_REFRESH_INTERVAL,
-  NO_PROJECT_COLOR, NO_PROJECT_INFO,
   OPTIMAL_TEXTS_LENGTH, timeEntryDetails,
   Tracking,
 } from './tracking';
 import {API} from './api';
 import {Transmitter} from '../common/transmitter';
 import flushPromises from 'flush-promises';
-import {MESSAGE_TYPE} from '../common/message-types';
+import {MESSAGE_TYPE} from '../common/constants/message-types';
 import {timeEntryBody} from '../utils/factories/time-entries';
 import {projectBody} from '../utils/factories/projects';
 import {gettext} from '../__mocks__/i18n';
+import {NO_PROJECT_COLOR, NO_PROJECT_INFO} from '../common/constants/default-time-entry';
 
 jest.mock('../common/transmitter');
 jest.mock('./api');

@@ -111,7 +111,15 @@ class Transmitter {
    * @private
    */
   _initMessageHandler() {
-    const messageHandlers = new Map();
+    const messageHandlers = {
+      _s: {},
+      set(type, handler) {
+        this._s[type] = handler;
+      },
+      get(type) {
+        return this._s[type];
+      },
+    };
 
     peerSocket.onmessage = ({data: message}) => {
       debug('message received', message);

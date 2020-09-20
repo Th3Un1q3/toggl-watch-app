@@ -1,6 +1,7 @@
 .time-entry-list {
     height: 100%;
     width: 100%;
+    display: inline;
 }
 
 .item__content-container {
@@ -77,6 +78,7 @@
 .time-entry-list__item {
     height: 100;
     width: 100%;
+    display: inline;
 }
 
 .item__background {

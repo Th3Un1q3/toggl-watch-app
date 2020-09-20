@@ -4,9 +4,27 @@
  */
 
 import {JSDOM} from 'jsdom';
+import {TEMPLATE, VIEW} from '../app/ui/views';
 
-const ASSUMED_BODY = `
+const loaderWithId = (id) => `
+<div id="${id}" style="display: inline">
+    <div id="rotation">loader</div>
+</div>
+`;
+
+const INDEX = `
+${loaderWithId('loader')}
+`;
+
+const CONFIGURATION_REQUIRED = `
+<div id="configuration-instruction" style="display: none">content</div>
+`;
+
+const CURRENT_ENTRY = `
 <div id="view-switch">
+  <div id="time-entries-list-container">
+      Time entries log
+  </div>
   <div id="current-entry">
       <div id="current-entry-project" style="fill: white"></div>
       <div id="current-entry-description"></div>
@@ -24,10 +42,12 @@ const ASSUMED_BODY = `
           </button>
       </div>
   </div>
-  <div id="loader-container" style="display: none">
-      <div id="loader">loader</div>
-  </div>
-  <div id="configuration-instruction" style="display: none">content</div>
+</div>
+${loaderWithId('loader')}
+`;
+
+const ENTRIES_LOG = `
+<div id="view-switch">
   <div id="time-entries-list-container">
       <div id="time-entry[1]" class="time-entry-list__item">
           <div id="wrapper" class="item-wrapper item-wrapper--hidden">
@@ -39,11 +59,21 @@ const ASSUMED_BODY = `
           </div>
       </div>
   </div>
+  <div id="current-entry">
+      Current entry
+  </div>
 </div>
 `;
 
+const VIEW_TEMPLATE = {
+  [TEMPLATE._default]: INDEX,
+  [TEMPLATE[VIEW.ConfigurationRequired]]: CONFIGURATION_REQUIRED,
+  [TEMPLATE[VIEW.EntriesLog]]: ENTRIES_LOG,
+  [TEMPLATE[VIEW.CurrentEntry]]: CURRENT_ENTRY,
+};
+
 const dom = new JSDOM(`<body>
-  ${ASSUMED_BODY}
+  ${INDEX}
 </body>`);
 
 const {document: fakeDocument} = dom.window;
@@ -79,10 +109,18 @@ const attachDeviceButtonHandlers = (button) => {
   });
 };
 
-fakeDocument._reset = () => {
-  fakeDocument.body.innerHTML = ASSUMED_BODY;
+fakeDocument._window = dom.window;
+
+fakeDocument._reset = (pathName = TEMPLATE._default) => {
+  fakeDocument.body.innerHTML = VIEW_TEMPLATE[pathName];
+  Object.defineProperty(fakeDocument, 'replaceSync', {
+    value: jest.fn(),
+    configurable: true,
+  });
   Array.from(fakeDocument.querySelectorAll('*')).forEach(attachDeviceDOMNodeCustomBehavior);
   Array.from(fakeDocument.getElementsByTagName('button')).forEach(attachDeviceButtonHandlers);
 };
+
+fakeDocument._reset();
 
 export default fakeDocument;

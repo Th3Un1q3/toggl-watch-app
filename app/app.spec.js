@@ -1,13 +1,13 @@
 import {_resetSystem, memory} from 'system';
 import {DEVICE_QUEUE_SIZE, Transmitter} from '../common/transmitter';
-import {Tracking} from './tracking';
-import {MESSAGE_TYPE} from '../common/message-types';
+import {MESSAGE_TYPE} from '../common/constants/message-types';
 import {App} from './app';
 import {UserInterface} from './ui';
+import {TimeEntryRepository} from './time-entry.repository';
 
 jest.mock('./ui');
 jest.mock('../common/transmitter');
-jest.mock('./tracking');
+jest.mock('./time-entry.repository');
 
 describe('Application module', () => {
   beforeEach(() => {
@@ -41,22 +41,22 @@ describe('Application module', () => {
       expect(Transmitter).toHaveBeenLastCalledWith({queueSize: DEVICE_QUEUE_SIZE});
     });
 
-    it('should create tracking instance with transmitter', () => {
-      expect(Tracking).not.toHaveBeenCalled();
-
-      expect(App.instance.tracking).toBeInstanceOf(Tracking);
-
-      expect(Tracking).toHaveBeenCalledTimes(1);
-      expect(Tracking).toHaveBeenLastCalledWith({transmitter: App.instance.transmitter});
+    it('should define correct entries repository', () => {
+      expect(App.instance.entriesRepo).toBeInstanceOf(TimeEntryRepository);
+      expect(TimeEntryRepository).toHaveBeenCalledTimes(1);
+      expect(TimeEntryRepository).toHaveBeenLastCalledWith({transmitter: App.instance.transmitter});
     });
 
-    it('should create ui instance with tracking', () => {
+
+    it('should create ui instance with entries repo', () => {
       expect(UserInterface).not.toHaveBeenCalled();
 
       expect(App.instance.ui).toBeInstanceOf(UserInterface);
 
       expect(UserInterface).toHaveBeenCalledTimes(1);
-      expect(UserInterface).toHaveBeenCalledWith({tracking: App.instance.tracking});
+      expect(UserInterface).toHaveBeenCalledWith({
+        entriesRepo: App.instance.entriesRepo,
+      });
     });
   });
 
