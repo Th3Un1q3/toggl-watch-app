@@ -996,10 +996,10 @@
   resolved "https://registry.yarnpkg.com/@fitbit/pngjs/-/pngjs-3.3.3-fitbit.4.tgz#b15d2efab54dbbc60111b7fb7d7a2f9946022d90"
   integrity sha512-y/EU1HufyydlR8kRhVH5ttb7CloGaO9inmnyebpLZGHaS9+zGL1CDAG2ua4Vgp6yjpNSjg7prwjLCIpoZ501wQ==
 
-"@fitbit/sdk@~4.2.1":
-  version "4.2.1"
-  resolved "https://registry.yarnpkg.com/@fitbit/sdk/-/sdk-4.2.1.tgz#22879f232358f04c9cf4b087de7e304ded8d3c3d"
-  integrity sha512-wsMksyT2UgtgaNVMNY04EVZkcqJn04SEl0hOQ7Z6N6u1atZa6CaPcsH82cGZcosjHpL604uYVjkakA/cTOks8w==
+"@fitbit/sdk@~5.0.1":
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/@fitbit/sdk/-/sdk-5.0.1.tgz#cc2946bed2acd3921e92e49fcedd539006a14436"
+  integrity sha512-VvZNBd0qQcTTQ4hK9bWD9FCdcOs/kQay0Vt/8ouMmgGWT7e3f/R800qzTyYCENHf+ubL2INGyGcOLJgpo7c5Ng==
   dependencies:
     "@babel/core" "^7.11.1"
     "@babel/plugin-syntax-dynamic-import" "^7.8.3"
