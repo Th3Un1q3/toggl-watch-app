@@ -1,3 +1,9 @@
+describe('placeholder', () => {
+  test('bbb', () => {
+    expect(true).toBeTruthy();
+  });
+});
+
 // import _ from 'lodash';
 // import faker from 'faker';
 // import {API, API_APP_REFERENCE, HTTP_STATUS} from './api';
