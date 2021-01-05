@@ -22,6 +22,10 @@ jobs:
       - name: Install Dependencies
         run: yarn install
 
+      # Debug, TODO: delete
+      - run: ls /home/runner/work/toggl-watch-app
+      - run: ls /home/runner/work/toggl-watch-app/toggl-watch-app
+
       - name: Test & publish code coverage
         uses: paambaati/codeclimate-action@v2.7.5
         env:
