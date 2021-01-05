@@ -15,6 +15,6 @@ module.exports = {
     'sourceType': 'module',
   },
   'rules': {
-    "max-len": [2, {"code": 120}]
+    'max-len': [2, {'code': 120}],
   },
 };

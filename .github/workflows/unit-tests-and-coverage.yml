@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - feature/**
 
 jobs:
   run:
@@ -21,8 +22,14 @@ jobs:
       - name: Install Dependencies
         run: yarn install
 
-      - name: Run tests with collect coverage
-        run: yarn test:unit --maxWorkers=4 --collectCoverage
+      - name: Test & publish code coverage
+        uses: paambaati/codeclimate-action@v2.7.5
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CODE_CLIMATE_TOKEN }}
+        with:
+          coverageCommand: yarn test:unit --maxWorkers=4 --collectCoverage
+          coverageLocations: |
+            ${{github.workspace}}/coverage/lcov.info:lcov
 
       - uses: codecov/codecov-action@v1
         with:
