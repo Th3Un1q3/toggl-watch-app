@@ -2,7 +2,8 @@ name: Collect code coverage
 on:
   push:
     branches:
-      - '*'
+      - master
+      - feature/**
 
 jobs:
   run:
