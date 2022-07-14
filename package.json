@@ -24,7 +24,7 @@
     "defaultLanguage": "en-US"
   },
   "devDependencies": {
-    "faker": "^5.5.3",
+    "faker": "^6.6.6",
     "lodash": "^4.17.21",
     "@babel/preset-env": "^7.14.1",
     "@fitbit/sdk": "~5.0.2",
